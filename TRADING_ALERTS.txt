@@ -1,6 +1,0 @@
-
-[12:54:01] USING DELAYED DATA: Yahoo Finance active (15-min delay). Strategy accuracy reduced.
-
-[12:54:22] TRADE FOUND: NESTLEIND selected! PCR: 1.32, Source: YAHOO_DELAYED
-
-[12:54:22] TRADE EXECUTED: NESTLEIND16OCT1200CE @ ₹11.96
