@@ -35,12 +35,19 @@ class ZerodhaOptionTrading:
         print(f"Loaded {len(self.instruments)} option contracts")
         
     def find_top_gainer(self):
-        """Find top gaining stock from watchlist"""
-        # Focus on stocks with weekly options
+        """Find top gaining stock from FULL NIFTY50"""
+        # Complete NIFTY50 list
         watchlist = [
-            'NSE:SBILIFE', 'NSE:RELIANCE', 'NSE:TCS', 'NSE:INFY', 
-            'NSE:BHARTIARTL', 'NSE:HDFC', 'NSE:ICICIBANK', 'NSE:HDFCBANK',
-            'NSE:KOTAKBANK', 'NSE:AXISBANK', 'NSE:ITC', 'NSE:LT'
+            'NSE:RELIANCE', 'NSE:TCS', 'NSE:HDFCBANK', 'NSE:INFY', 'NSE:HDFC',
+            'NSE:ICICIBANK', 'NSE:KOTAKBANK', 'NSE:SBIN', 'NSE:BHARTIARTL', 'NSE:ITC',
+            'NSE:AXISBANK', 'NSE:LT', 'NSE:BAJFINANCE', 'NSE:WIPRO', 'NSE:MARUTI',
+            'NSE:HCLTECH', 'NSE:ASIANPAINT', 'NSE:ULTRACEMCO', 'NSE:TITAN', 'NSE:SUNPHARMA',
+            'NSE:TECHM', 'NSE:POWERGRID', 'NSE:NTPC', 'NSE:TATAMOTORS', 'NSE:INDUSINDBK',
+            'NSE:M&M', 'NSE:HINDUNILVR', 'NSE:ADANIPORTS', 'NSE:COALINDIA', 'NSE:DIVISLAB',
+            'NSE:DRREDDY', 'NSE:UPL', 'NSE:ONGC', 'NSE:JSWSTEEL', 'NSE:GRASIM',
+            'NSE:BPCL', 'NSE:CIPLA', 'NSE:EICHERMOT', 'NSE:SHREECEM', 'NSE:HEROMOTOCO',
+            'NSE:BAJAJFINSV', 'NSE:NESTLEIND', 'NSE:BRITANNIA', 'NSE:TATACONSUM', 'NSE:ADANIENT',
+            'NSE:HINDALCO', 'NSE:SBILIFE', 'NSE:APOLLOHOSP', 'NSE:TATASTEEL', 'NSE:VEDL'
         ]
         
         print("\n📊 Scanning for top gainers...")
