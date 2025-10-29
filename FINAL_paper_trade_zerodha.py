@@ -326,8 +326,37 @@ def main():
     
     try:
         trader = ZerodhaOptionTrading()
+        
+        # Check if market hours
+        now = datetime.now()
+        current_time = now.time()
+        
+        # If before 9:14 AM, wait
+        if current_time < datetime.strptime("09:14", "%H:%M").time():
+            target_time = datetime.combine(now.date(), datetime.strptime("09:14", "%H:%M").time())
+            wait_seconds = (target_time - now).total_seconds()
+            
+            print(f"⏰ Waiting until 9:14 AM for pre-market scan...")
+            print(f"   Current time: {current_time.strftime('%H:%M:%S')}")
+            print(f"   Will start in: {wait_seconds/60:.1f} minutes")
+            print(f"   Strategy: Scan at 9:14, Execute at 9:15")
+            print("\nPress Ctrl+C to cancel")
+            
+            import time
+            time.sleep(wait_seconds)
+        
+        # If between 9:14-9:15, proceed immediately
+        elif datetime.strptime("09:14", "%H:%M").time() <= current_time <= datetime.strptime("09:16", "%H:%M").time():
+            print("✅ Perfect timing! Executing 9:15 strategy now...")
+        
+        # If after 9:16, warn but proceed
+        elif current_time > datetime.strptime("09:16", "%H:%M").time():
+            print("⚠️  Running after 9:15 AM - may miss optimal entry")
+        
         trader.execute_strategy()
         
+    except KeyboardInterrupt:
+        print("\n\n⏹️  Strategy cancelled by user")
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
