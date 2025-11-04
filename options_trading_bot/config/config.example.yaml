@@ -1,0 +1,40 @@
+broker:
+  access_token: YOUR_ACCESS_TOKEN_HERE
+  api_key: YOUR_API_KEY_HERE
+  api_secret: YOUR_API_SECRET_HERE
+  name: zerodha
+data:
+  cache_duration: 5
+  fallback_sources:
+  - yahoo
+  primary_source: zerodha
+logging:
+  backup_count: 5
+  file: logs/trading_bot.log
+  level: INFO
+  max_size: 10MB
+notifications:
+  alert_on_stop_loss: true
+  alert_on_target: true
+  alert_on_trade: true
+  daily_summary: true
+  telegram_chat_id: YOUR_CHAT_ID
+  telegram_enabled: false
+  telegram_token: YOUR_BOT_TOKEN
+risk:
+  circuit_breaker_enabled: true
+  circuit_breaker_threshold: 3
+  max_daily_loss: 5000
+  max_positions: 1
+  max_risk_per_trade: 2.0
+  stop_loss_enabled: true
+  trailing_stop_enabled: false
+trading:
+  capital: 100000
+  mode: paper
+  pcr_max: 1.5
+  pcr_min: 0.7
+  profit_target_percent: 8.0
+  stop_loss_percent: 30.0
+  strict_pcr_check: false
+  use_live_data: true

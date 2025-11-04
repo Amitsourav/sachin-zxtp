@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Logs
+*.log
+
+# Sensitive data
+config/config.yaml
+access_token.txt
+credentials.json
+
+# IDE
+.vscode/
+.DS_Store
+
+# Temp files
+*.tmp
+*.bak

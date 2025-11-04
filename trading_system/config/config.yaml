@@ -1,0 +1,60 @@
+# 9:15 Strategy Configuration
+
+# Trading Parameters
+trading:
+  max_amount_per_trade: 1  # 1 lot only
+  pcr_min_range: 0.7
+  pcr_max_range: 1.5
+  profit_target_percent: 8.0
+  execution_time: "09:15:00"  # IST
+  pre_market_scan_time: "09:14:00"  # IST
+  timezone: "Asia/Kolkata"
+
+# Broker Configuration (choose one)
+broker:
+  name: "zerodha"  # Options: zerodha, upstox, angel_one, fivepaisa
+  api_key: ""
+  api_secret: ""
+  access_token: ""
+  paper_trading: true  # Start with paper trading
+
+# Data Sources
+data:
+  use_free_apis: true
+  nse_api_url: "https://www.nseindia.com"
+  backup_data_source: "yfinance"
+
+# Risk Management
+risk:
+  max_daily_trades: 1
+  trading_holidays_check: true
+  market_volatility_filter: true
+  volatility_threshold: 2.0  # VIX threshold
+
+# Notifications
+notifications:
+  telegram:
+    enabled: true
+    bot_token: ""
+    chat_id: ""
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    email: ""
+    password: ""
+    recipient: ""
+
+# Logging
+logging:
+  level: "INFO"
+  file_path: "logs/trading.log"
+  max_file_size: "10MB"
+  backup_count: 5
+
+# Backtesting
+backtesting:
+  enabled: true
+  start_date: "2023-01-01"
+  end_date: "2024-01-01"
+  initial_capital: 100000
