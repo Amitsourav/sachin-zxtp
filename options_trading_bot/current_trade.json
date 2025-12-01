@@ -1,0 +1,14 @@
+{
+  "stock": "M&M",
+  "stock_price": 3764.4,
+  "option_symbol": "M&M25DEC3750CE",
+  "entry_price": 119.65,
+  "quantity": 200,
+  "target": 129.222,
+  "stop_loss": 83.755,
+  "entry_time": "10:03:00",
+  "status": "MANUAL_EXIT",
+  "is_live": false,
+  "exit_price": 118.3,
+  "exit_time": "10:03:34"
+}

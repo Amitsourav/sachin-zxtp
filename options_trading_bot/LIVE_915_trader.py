@@ -57,7 +57,7 @@ class Live915Trader:
             'NSE:TECHM', 'NSE:POWERGRID', 'NSE:NTPC', 'NSE:TATAMOTORS', 'NSE:INDUSINDBK',
             'NSE:M&M', 'NSE:HINDUNILVR', 'NSE:ADANIPORTS', 'NSE:COALINDIA', 'NSE:DIVISLAB',
             'NSE:DRREDDY', 'NSE:UPL', 'NSE:ONGC', 'NSE:JSWSTEEL', 'NSE:GRASIM',
-            'NSE:BPCL', 'NSE:CIPLA', 'NSE:EICHERMOT', 'NSE:SHREECEM', 'NSE:HEROMOTOCO',
+            'NSE:BPCL', 'NSE:CIPLA', 'NSE:EICHERMOT', 'NSE:SHREECEM', 'NSE:MAXHEALTH',
             'NSE:BAJAJFINSV', 'NSE:NESTLEIND', 'NSE:BRITANNIA', 'NSE:TATACONSUM', 'NSE:ADANIENT',
             'NSE:HINDALCO', 'NSE:SBILIFE', 'NSE:APOLLOHOSP', 'NSE:TATASTEEL', 'NSE:VEDL'
         ]
@@ -94,27 +94,30 @@ class Live915Trader:
         
     def find_option_contract(self, underlying, spot_price):
         """Find tradeable option contract"""
-        stock_options = self.instruments[
-            (self.instruments['name'] == underlying) &
-            (self.instruments['instrument_type'] == 'CE')
-        ]
+        # Fix: Use .loc to avoid ambiguous truth value
+        mask = (self.instruments['name'] == underlying) & (self.instruments['instrument_type'] == 'CE')
+        stock_options = self.instruments.loc[mask]
         
-        if stock_options.empty:
+        if len(stock_options) == 0:
             return None
             
         # Find next expiry
-        future_expiries = stock_options[stock_options['expiry'] > datetime.now().date()]['expiry'].unique()
+        current_date = datetime.now().date()
+        future_mask = stock_options['expiry'] > current_date
+        future_expiries = stock_options.loc[future_mask, 'expiry'].unique()
         if len(future_expiries) == 0:
             return None
             
         expiry = sorted(future_expiries)[0]
-        options_df = stock_options[stock_options['expiry'] == expiry]
+        expiry_mask = stock_options['expiry'] == expiry
+        options_df = stock_options.loc[expiry_mask]
         
         # Find ATM strike
         strikes = sorted(options_df['strike'].unique())
         atm_strike = min(strikes, key=lambda x: abs(x - spot_price))
         
-        return options_df[options_df['strike'] == atm_strike].iloc[0]
+        strike_mask = options_df['strike'] == atm_strike
+        return options_df.loc[strike_mask].iloc[0]
         
     def place_live_order(self, option, quantity):
         """⚠️  PLACE REAL ORDER WITH REAL MONEY!"""

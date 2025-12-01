@@ -1,0 +1,42 @@
+{
+  "timestamp": "2025-11-11T14:02:35.023304",
+  "valid_stocks": 49,
+  "top_gainer": {
+    "symbol": "INDIGO",
+    "ltp": 5728,
+    "change": 2.496197548537175,
+    "volume": 565716
+  },
+  "top_5": [
+    {
+      "symbol": "INDIGO",
+      "ltp": 5728,
+      "change": 2.496197548537175,
+      "volume": 565716
+    },
+    {
+      "symbol": "BPCL",
+      "ltp": 373.85,
+      "change": 2.382582500342338,
+      "volume": 7430242
+    },
+    {
+      "symbol": "M&M",
+      "ltp": 3720.4,
+      "change": 1.5420726548213652,
+      "volume": 1738813
+    },
+    {
+      "symbol": "ADANIPORTS",
+      "ltp": 1465.1,
+      "change": 1.3980206242646425,
+      "volume": 1142312
+    },
+    {
+      "symbol": "HCLTECH",
+      "ltp": 1560,
+      "change": 1.2658227848101267,
+      "volume": 1404236
+    }
+  ]
+}
