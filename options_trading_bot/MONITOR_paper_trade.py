@@ -2,6 +2,7 @@
 """
 PAPER TRADING WITH LIVE MONITORING
 Shows real-time P&L, targets, and stop-loss like in the screenshot
+Waits until 9:15:02 AM for market prices to stabilize before executing trades
 """
 
 from kiteconnect import KiteConnect
@@ -158,8 +159,8 @@ class PaperTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for 9:15 AM market open"""
-        market_open = datetime_time(9, 15, 0)
+        """Wait for 9:15:02 AM for market prices to stabilize"""
+        market_open = datetime_time(9, 15, 2)  # Changed to 9:15:02
         
         while True:
             now = datetime.now()
@@ -167,7 +168,7 @@ class PaperTradeMonitor:
             
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n✅ Market OPEN at {now.strftime('%H:%M:%S')}")
+                    print(f"\n✅ Market stabilized at {now.strftime('%H:%M:%S')} - executing strategy!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")
@@ -178,13 +179,17 @@ class PaperTradeMonitor:
             
             if wait_seconds > 0:
                 mins, secs = divmod(int(wait_seconds), 60)
-                print(f"\r⏰ Market opens in: {mins:02d}:{secs:02d}", end="")
+                # Show special message for the 2-second delay
+                if current_time >= datetime_time(9, 15, 0) and current_time < market_open:
+                    print(f"\r⏰ Waiting for price stabilization: {secs:02d} seconds...", end="")
+                else:
+                    print(f"\r⏰ Market opens in: {mins:02d}:{secs:02d}", end="")
                 time.sleep(1)
     
     def scan_top_gainers(self):
-        """Scan for top gainers IMMEDIATELY - no waiting!"""
-        print(f"\n⚡ IMMEDIATE SCAN at {datetime.now().strftime('%H:%M:%S')}")
-        print("Executing 9:15 VOLATILITY strategy - NO DELAYS!")
+        """Scan for top gainers after market price stabilization (9:15:02)"""
+        print(f"\n⚡ STABILIZED PRICE SCAN at {datetime.now().strftime('%H:%M:%S')}")
+        print("Executing 9:15 strategy with 2-second price stabilization delay")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -526,8 +531,8 @@ def main():
     
     print("="*80)
     print("This will:")
-    print("1. Wait for market open (9:15 AM)")
-    print("2. Find top gainer")
+    print("1. Wait for market open + 2 seconds (9:15:02 AM)")
+    print("2. Find top gainer with stabilized prices")
     if args.live:
         print("3. Execute REAL trade with REAL money")
     else:

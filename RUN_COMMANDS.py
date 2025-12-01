@@ -58,12 +58,12 @@ def main():
     print("\n📋 AVAILABLE COMMANDS:")
     print("-" * 50)
     print("1. Get Access Token")
-    print("2. Run ULTIMATE 9:15 Strategy")
-    print("3. Paper Trading")
-    print("4. Validate Before 9:15")
-    print("5. Web Dashboard")
-    print("6. Test Symbols")
-    print("7. Check Configuration")
+    print("2. Paper Trading (Basic)")
+    print("3. Paper Trading with Live Monitoring")
+    print("4. Live Trading (Real Money)")
+    print("5. Validate Before 9:15")
+    print("6. Check Configuration")
+    print("7. Track Performance")
     print("0. Exit")
     
     while True:
@@ -76,24 +76,23 @@ def main():
             print("\n🔑 Getting Access Token...")
             subprocess.run([sys.executable, "get_access_token.py"])
         elif choice == '2':
-            print("\n🚀 Running ULTIMATE 9:15...")
-            subprocess.run([sys.executable, "ULTIMATE_915.py"])
-        elif choice == '3':
-            print("\n📝 Running Paper Trading...")
+            print("\n📝 Running Basic Paper Trading...")
             subprocess.run([sys.executable, "FINAL_paper_trade_zerodha.py"])
+        elif choice == '3':
+            print("\n📊 Running Paper Trading with Live Monitoring...")
+            subprocess.run([sys.executable, "MONITOR_paper_trade.py"])
         elif choice == '4':
-            print("\n✅ Validating...")
-            subprocess.run([sys.executable, "VALIDATE_before_915.py"])
+            print("\n🚨 Running LIVE Trading (Real Money)...")
+            print("⚠️  WARNING: This uses real money!")
+            confirm = input("Type 'LIVE' to confirm: ").strip()
+            if confirm == 'LIVE':
+                subprocess.run([sys.executable, "FIXED_LIVE_915_trader.py"])
+            else:
+                print("❌ Live trading cancelled")
         elif choice == '5':
-            print("\n🌐 Starting Web Dashboard...")
-            web_dir = os.path.join(project_dir, "web_interface")
-            os.chdir(web_dir)
-            subprocess.run([sys.executable, "app.py"])
-            os.chdir(project_dir)
+            print("\n✅ Validating before 9:15...")
+            subprocess.run([sys.executable, "VALIDATE_before_915.py"])
         elif choice == '6':
-            print("\n🧪 Testing Symbols...")
-            subprocess.run([sys.executable, "test_symbols.py"])
-        elif choice == '7':
             print("\n⚙️ Checking Configuration...")
             config_path = os.path.join(project_dir, "config/config.yaml")
             if os.path.exists(config_path):
@@ -112,6 +111,9 @@ def main():
                     import shutil
                     shutil.copy(example, config_path)
                     print("✅ Created config.yaml - Please add your API keys!")
+        elif choice == '7':
+            print("\n📈 Tracking Performance...")
+            subprocess.run([sys.executable, "track_performance.py"])
         else:
             print("❌ Invalid choice!")
 
