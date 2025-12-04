@@ -1,14 +1,12 @@
 {
-  "stock": "M&M",
-  "stock_price": 3764.4,
-  "option_symbol": "M&M25DEC3750CE",
-  "entry_price": 119.65,
-  "quantity": 200,
-  "target": 129.222,
-  "stop_loss": 83.755,
-  "entry_time": "10:03:00",
-  "status": "MANUAL_EXIT",
-  "is_live": false,
-  "exit_price": 118.3,
-  "exit_time": "10:03:34"
+  "stock": "HEROMOTOCO",
+  "stock_price": 6333,
+  "option_symbol": "HEROMOTOCO25DEC6350CE",
+  "entry_price": 140.2,
+  "quantity": 150,
+  "target": 151.416,
+  "stop_loss": 98.13999999999999,
+  "entry_time": "14:52:11",
+  "status": "ACTIVE",
+  "is_live": false
 }
