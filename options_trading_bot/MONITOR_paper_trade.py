@@ -159,8 +159,8 @@ class PaperTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for 9:15:02 AM for market prices to stabilize"""
-        market_open = datetime_time(9, 15, 2)  # Changed to 9:15:02
+        """Wait for exactly 9:15:00.000000 for immediate market open execution"""
+        market_open = datetime_time(9, 15, 0, 0)  # Exactly 9:15:00.000000
         
         while True:
             now = datetime.now()
@@ -168,7 +168,7 @@ class PaperTradeMonitor:
             
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n✅ Market stabilized at {now.strftime('%H:%M:%S')} - executing strategy!")
+                    print(f"\n⚡ EXECUTING AT MARKET OPEN: {now.strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")
@@ -178,18 +178,21 @@ class PaperTradeMonitor:
             wait_seconds = (target - now).total_seconds()
             
             if wait_seconds > 0:
-                mins, secs = divmod(int(wait_seconds), 60)
-                # Show special message for the 2-second delay
-                if current_time >= datetime_time(9, 15, 0) and current_time < market_open:
-                    print(f"\r⏰ Waiting for price stabilization: {secs:02d} seconds...", end="")
-                else:
+                if wait_seconds > 10:  # If more than 10 seconds, show normal countdown
+                    mins, secs = divmod(int(wait_seconds), 60)
                     print(f"\r⏰ Market opens in: {mins:02d}:{secs:02d}", end="")
-                time.sleep(1)
+                    time.sleep(1)
+                elif wait_seconds > 1:  # Between 1-10 seconds, prepare for execution
+                    print(f"\r🎯 PREPARING FOR EXECUTION: {wait_seconds:.2f} seconds...", end="")
+                    time.sleep(0.1)  # Check every 100ms for precision
+                else:  # Less than 1 second, high precision mode
+                    print(f"\r⚡ HIGH PRECISION MODE: {wait_seconds*1000:.0f}ms", end="")
+                    time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_gainers(self):
-        """Scan for top gainers after market price stabilization (9:15:02)"""
-        print(f"\n⚡ STABILIZED PRICE SCAN at {datetime.now().strftime('%H:%M:%S')}")
-        print("Executing 9:15 strategy with 2-second price stabilization delay")
+        """Scan for top gainers immediately at market open"""
+        print(f"\n⚡ IMMEDIATE MARKET OPEN SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
+        print("Capturing opening prices before they spike up")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -198,33 +201,57 @@ class PaperTradeMonitor:
             return None
         
         gainers = []
+        
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
                 if 'ohlc' in data and 'close' in data['ohlc']:
                     prev_close = data['ohlc']['close']
+                    open_price = data['ohlc'].get('open', prev_close)
                     ltp = data.get('last_price', 0)
+                    volume = data.get('volume', 0)
                     
+                    # Basic validation - just ensure we have valid prices
                     if prev_close > 0 and ltp > 0:
+                        # Calculate change from previous close
                         change_pct = ((ltp - prev_close) / prev_close) * 100
-                        if change_pct > 0:
+                        
+                        # At market open, LTP might equal open price (this is normal)
+                        # We want ANY positive change, even small ones
+                        if change_pct > 0:  # Any positive gain
                             gainers.append({
                                 'symbol': symbol.split(':')[1],
                                 'ltp': ltp,
+                                'open': open_price,
+                                'prev_close': prev_close,
                                 'change': change_pct,
-                                'volume': data.get('volume', 0)
+                                'gap_up': ((open_price - prev_close) / prev_close) * 100 if open_price > 0 else 0,
+                                'volume': volume
                             })
         
         if gainers:
             gainers.sort(key=lambda x: x['change'], reverse=True)
             
-            print("\n📊 TOP GAINERS:")
-            print("-"*60)
+            print("\n📊 TOP GAINERS (Validated Prices):")
+            print("-"*80)
+            print(f"{'Stock':<12} {'Close':<10} {'Open':<10} {'LTP':<10} {'Change%':<8} {'Volume':<12}")
+            print("-"*80)
             for i, g in enumerate(gainers[:5], 1):
-                print(f"{i}. {g['symbol']:<12} ₹{g['ltp']:<10.2f} +{g['change']:.2f}%")
-            print("-"*60)
+                print(f"{i}. {g['symbol']:<10} ₹{g['prev_close']:8.2f}  ₹{g['open']:8.2f}  ₹{g['ltp']:8.2f}  {g['change']:+6.2f}%  {g['volume']:>10,}")
+            print("-"*80)
+            
+            # Show selected stock details
+            selected = gainers[0]
+            print(f"\n✅ Selected: {selected['symbol']}")
+            print(f"   Market Open Price Captured!")
+            print(f"   Open: ₹{selected['open']:.2f} | LTP: ₹{selected['ltp']:.2f}")
+            print(f"   Executing immediately to avoid price spike")
             
             return gainers[0] if gainers else None
+        
+        print("\n❌ No gaining stocks found at market open")
+        print("   This is normal in the first few milliseconds")
+        print("   Retrying...")
         
         return None
     
@@ -260,11 +287,22 @@ class PaperTradeMonitor:
             if len(options_df) == 0:
                 return None
             
-            # Find ATM strike
+            # Find ATM or slightly OTM strike (equal to or just below current price)
             strikes = sorted(options_df['strike'].unique())
-            atm_strike = min(strikes, key=lambda x: abs(x - spot_price))
             
-            strike_mask = options_df['strike'] == atm_strike
+            # Filter strikes that are equal to or below current price
+            otm_strikes = [s for s in strikes if s <= spot_price]
+            
+            if otm_strikes:
+                # Pick the highest strike that is <= current price (closest to ATM but OTM)
+                selected_strike = max(otm_strikes)
+                print(f"\n🎯 Strike Selection: Spot ₹{spot_price:.2f} → Strike ₹{selected_strike:.2f} (OTM)")
+            else:
+                # If all strikes are above current price, pick the lowest one
+                selected_strike = min(strikes)
+                print(f"\n⚠️  All strikes above spot price ₹{spot_price:.2f}, selected lowest: ₹{selected_strike:.2f}")
+            
+            strike_mask = options_df['strike'] == selected_strike
             final_option = options_df.loc[strike_mask]
             
             if len(final_option) == 0:

@@ -50,7 +50,8 @@ class ZerodhaOptionTrading:
             'NSE:TATASTEEL', 'NSE:SHRIRAMFIN', 'NSE:ADANIENT', 'NSE:LTIM', 'NSE:TRENT', 'NSE:INDIGO'
         ]
         
-        print("\n📊 Scanning for top gainers...")
+        print(f"\n⚡ IMMEDIATE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
+        print("📊 Capturing market open prices before spike...")
         quotes = self.kite.quote(watchlist)
         
         gainers = []
@@ -60,24 +61,36 @@ class ZerodhaOptionTrading:
                 prev_close = data['ohlc']['close']
                 ltp = data['last_price']
                 
+                # At market open, volume might be 0 for first few milliseconds - that's OK
+                # We want the FIRST tick, not wait for volume
+                open_price = data['ohlc'].get('open', prev_close)
+                
+                # Calculate change from previous close for ranking
                 if prev_close > 0:
                     change_pct = ((ltp - prev_close) / prev_close) * 100
-                    
-                    if change_pct > 0:
-                        gainers.append({
-                            'symbol': symbol.split(':')[1],
-                            'ltp': ltp,
-                            'change': change_pct,
-                            'volume': data.get('volume', 0)
-                        })
+                else:
+                    change_pct = 0
+                
+                # Consider ANY positive movement (even 0.01%)
+                if change_pct > 0:
+                    gainers.append({
+                        'symbol': symbol.split(':')[1],
+                        'ltp': ltp,
+                        'change': change_pct,
+                        'volume': data.get('volume', 0),
+                        'open': open_price,
+                        'prev_close': prev_close
+                    })
         
         if gainers:
             gainers.sort(key=lambda x: x['change'], reverse=True)
             
-            print("\nTop 3 Gainers:")
-            print("-" * 50)
+            print("\nTop 3 Gainers (Live Data):")
+            print("-" * 70)
+            print(f"{'Stock':<12} {'Open':<10} {'LTP':<10} {'Change%':<10} {'Volume':<12}")
+            print("-" * 70)
             for i, stock in enumerate(gainers[:3], 1):
-                print(f"{i}. {stock['symbol']:<12} ₹{stock['ltp']:8.2f}  +{stock['change']:.2f}%")
+                print(f"{i}. {stock['symbol']:<10} ₹{stock.get('open', 0):8.2f}  ₹{stock['ltp']:8.2f}  {stock['change']:+7.2f}%  {stock['volume']:>10,}")
             
             return gainers[0]
         
@@ -118,12 +131,29 @@ class ZerodhaOptionTrading:
             options_df = stock_options[stock_options['expiry'] == expiry]
             print(f"\n📅 Next available expiry: {expiry} ({expiry.strftime('%A')})")
         
-        # Find ATM strike
+        # Find ATM or slightly OTM strike (equal to or just below current price)
         strikes = sorted(options_df['strike'].unique())
-        atm_strike = min(strikes, key=lambda x: abs(x - spot_price))
+        
+        # Filter strikes that are equal to or below current price
+        otm_strikes = [s for s in strikes if s <= spot_price]
+        
+        if otm_strikes:
+            # Pick the highest strike that is <= current price (closest to ATM but OTM)
+            selected_strike = max(otm_strikes)
+        else:
+            # If all strikes are above current price, pick the lowest one
+            selected_strike = min(strikes)
+            print(f"⚠️  All strikes above spot price, selected lowest: {selected_strike}")
         
         # Get the specific option contract
-        option = options_df[options_df['strike'] == atm_strike].iloc[0]
+        option = options_df[options_df['strike'] == selected_strike].iloc[0]
+        
+        # Show strike selection logic
+        print(f"\n🎯 Strike Selection:")
+        print(f"   Spot Price: ₹{spot_price:.2f}")
+        print(f"   Selected Strike: ₹{selected_strike:.2f}")
+        print(f"   Type: {'ATM' if selected_strike == spot_price else 'OTM' if selected_strike < spot_price else 'ITM'}")
+        print(f"   Moneyness: ₹{spot_price - selected_strike:.2f} OTM" if selected_strike < spot_price else "")
         
         days_to_expiry = (expiry - datetime.now().date()).days
         
@@ -182,9 +212,12 @@ class ZerodhaOptionTrading:
             return
             
         print(f"\n✅ Selected Stock: {top_gainer['symbol']}")
-        print(f"   Current Price: ₹{top_gainer['ltp']:.2f}")
-        print(f"   Day Change: +{top_gainer['change']:.2f}%")
+        print(f"   Previous Close: ₹{top_gainer.get('prev_close', 0):.2f}")
+        print(f"   Open Price: ₹{top_gainer.get('open', 0):.2f}")
+        print(f"   Current Price (LTP): ₹{top_gainer['ltp']:.2f}")
+        print(f"   Day Change: {top_gainer['change']:+.2f}%")
         print(f"   Volume: {top_gainer['volume']:,}")
+        print(f"   Data freshness: {'LIVE' if top_gainer['volume'] > 0 else 'STALE'}")
         
         # Step 2: Find option contract
         option = self.find_option_contract(top_gainer['symbol'], top_gainer['ltp'])
@@ -332,31 +365,42 @@ def main():
         now = datetime.now()
         current_time = now.time()
         
-        # CRITICAL TIMING: Wait until exactly 9:15:00 to catch real top gainer
+        # Execute at EXACTLY 9:15:00 with microsecond precision
         if current_time < datetime.strptime("09:15", "%H:%M").time():
             target_time = datetime.combine(now.date(), datetime.strptime("09:15:00", "%H:%M:%S").time())
             wait_seconds = (target_time - now).total_seconds()
             
-            print(f"⏰ WAITING FOR MARKET OPEN - 9:15:00 SHARP")
+            print(f"⏰ WAITING FOR MARKET OPEN")
             print(f"   Current time: {current_time.strftime('%H:%M:%S')}")
-            print(f"   Will execute in: {wait_seconds:.1f} seconds")
-            print(f"   Strategy: Scan + Execute at EXACTLY 9:15:00")
-            print(f"   Reason: Top gainer changes at market open!")
+            print(f"   Will execute at: 9:15:00.000000 EXACTLY")
+            print(f"   Strategy: Capture opening price before spike")
             print("\nPress Ctrl+C to cancel")
             
             import time
-            # Sleep until exactly 9:15:00
-            time.sleep(wait_seconds)
+            # High precision waiting
+            while wait_seconds > 0:
+                now = datetime.now()
+                wait_seconds = (target_time - now).total_seconds()
+                
+                if wait_seconds > 10:
+                    print(f"\r⏰ Market opens in: {int(wait_seconds)} seconds", end="")
+                    time.sleep(1)
+                elif wait_seconds > 1:
+                    print(f"\r🎯 PREPARING: {wait_seconds:.2f} seconds", end="")
+                    time.sleep(0.1)
+                elif wait_seconds > 0:
+                    print(f"\r⚡ PRECISION MODE: {wait_seconds*1000:.0f}ms", end="")
+                    time.sleep(0.001)  # 1ms precision
             
-            print(f"\n⚡ MARKET OPEN! Executing at {datetime.now().strftime('%H:%M:%S')}")
+            print(f"\n⚡ EXECUTING NOW! Time: {datetime.now().strftime('%H:%M:%S.%f')}")
         
         # If at 9:15, proceed immediately
         elif datetime.strptime("09:15", "%H:%M").time() <= current_time <= datetime.strptime("09:16", "%H:%M").time():
-            print("✅ Perfect timing! Market is open - executing NOW...")
+            print(f"✅ Market open - executing at {datetime.now().strftime('%H:%M:%S.%f')}")
         
         # If after 9:16, warn but proceed
         elif current_time > datetime.strptime("09:16", "%H:%M").time():
-            print("⚠️  Running after 9:15 AM - may have missed optimal entry")
+            print("⚠️  Running after 9:15 AM - prices may have already spiked")
         
         trader.execute_strategy()
         

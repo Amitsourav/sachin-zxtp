@@ -160,8 +160,8 @@ class TopLoserTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for 9:15:02 AM for market prices to stabilize"""
-        market_open = datetime_time(9, 15, 2)  # Wait until 9:15:02
+        """Wait for exactly 9:15:00.000000 for immediate market open execution"""
+        market_open = datetime_time(9, 15, 0, 0)  # Exactly 9:15:00.000000
         
         while True:
             now = datetime.now()
@@ -169,7 +169,7 @@ class TopLoserTradeMonitor:
             
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n✅ Market stabilized at {now.strftime('%H:%M:%S')} - executing TOP LOSER strategy!")
+                    print(f"\n⚡ EXECUTING TOP LOSER STRATEGY AT MARKET OPEN: {now.strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")
@@ -179,18 +179,21 @@ class TopLoserTradeMonitor:
             wait_seconds = (target - now).total_seconds()
             
             if wait_seconds > 0:
-                mins, secs = divmod(int(wait_seconds), 60)
-                # Show special message for the 2-second delay
-                if current_time >= datetime_time(9, 15, 0) and current_time < market_open:
-                    print(f"\r⏰ Waiting for price stabilization: {secs:02d} seconds...", end="")
-                else:
+                if wait_seconds > 10:  # If more than 10 seconds, show normal countdown
+                    mins, secs = divmod(int(wait_seconds), 60)
                     print(f"\r⏰ Market opens in: {mins:02d}:{secs:02d}", end="")
-                time.sleep(1)
+                    time.sleep(1)
+                elif wait_seconds > 1:  # Between 1-10 seconds, prepare for execution
+                    print(f"\r🎯 PREPARING FOR EXECUTION: {wait_seconds:.2f} seconds...", end="")
+                    time.sleep(0.1)  # Check every 100ms for precision
+                else:  # Less than 1 second, high precision mode
+                    print(f"\r⚡ HIGH PRECISION MODE: {wait_seconds*1000:.0f}ms", end="")
+                    time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_losers(self):
-        """Scan for top LOSERS after market price stabilization (9:15:02)"""
-        print(f"\n⚡ SCANNING FOR TOP LOSER at {datetime.now().strftime('%H:%M:%S')}")
-        print("Executing TOP LOSER strategy with 2-second price stabilization delay")
+        """Scan for top LOSERS immediately at market open"""
+        print(f"\n⚡ IMMEDIATE TOP LOSER SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
+        print("Capturing opening prices before they move further")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -261,11 +264,28 @@ class TopLoserTradeMonitor:
             if len(options_df) == 0:
                 return None
             
-            # Find ATM strike
+            # For PUT options, find strike ABOVE current price (ITM or ATM)
             strikes = sorted(options_df['strike'].unique())
-            atm_strike = min(strikes, key=lambda x: abs(x - spot_price))
             
-            strike_mask = options_df['strike'] == atm_strike
+            # Filter strikes that are above or equal to current price
+            itm_strikes = [s for s in strikes if s >= spot_price]
+            
+            if itm_strikes:
+                # Pick the lowest strike that is >= current price (closest to ATM but ITM)
+                selected_strike = min(itm_strikes)
+            else:
+                # If all strikes are below current price, pick the highest one (closest to ATM)
+                selected_strike = max(strikes)
+                print(f"⚠️  All strikes below spot price ₹{spot_price:.2f}, selected highest: ₹{selected_strike:.2f}")
+            
+            print(f"\n🎯 PUT Strike Selection:")
+            print(f"   Spot Price: ₹{spot_price:.2f}")
+            print(f"   Selected Strike: ₹{selected_strike:.2f}")
+            print(f"   Type: {'ITM' if selected_strike > spot_price else 'ATM' if selected_strike == spot_price else 'OTM'}")
+            if selected_strike > spot_price:
+                print(f"   Intrinsic Value: ₹{selected_strike - spot_price:.2f}")
+            
+            strike_mask = options_df['strike'] == selected_strike
             final_option = options_df.loc[strike_mask]
             
             if len(final_option) == 0:
@@ -533,8 +553,9 @@ def main():
     
     print("="*80)
     print("This will:")
-    print("1. Wait for market open + 2 seconds (9:15:02 AM)")
-    print("2. Find TOP LOSER from NIFTY50 with stabilized prices")
+    print("1. Wait for market open at EXACTLY 9:15:00.000000")
+    print("2. Find TOP LOSER from NIFTY50 with opening prices")
+    print("   - Strike Selection: ITM/ATM (above current price)")
     if args.live:
         print("3. Execute REAL PUT trade with REAL money")
     else:
