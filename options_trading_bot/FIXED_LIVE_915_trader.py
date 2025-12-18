@@ -256,15 +256,15 @@ class FixedLive915Trader:
                 option_data = quote[option_symbol]
                 last_price = option_data['last_price']
                 
-                # Get bid-ask spread
+                # Use current market price (LTP) as limit price for immediate execution
+                limit_price = last_price  # Use LTP as limit price
+                
+                # Also get bid-ask for reference
                 bid_price = option_data.get('depth', {}).get('buy', [{}])[0].get('price', last_price)
                 ask_price = option_data.get('depth', {}).get('sell', [{}])[0].get('price', last_price)
                 
-                # Place limit order slightly above ask to ensure execution
-                limit_price = round(ask_price * 1.01, 2)  # 1% above ask
-                
                 print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f} | LTP: ₹{last_price:.2f}")
-                print(f"   Limit Price: ₹{limit_price:.2f}")
+                print(f"   Limit Price: ₹{limit_price:.2f} (using current market price)")
             else:
                 print("⚠️  Could not fetch quote, using estimated price")
                 limit_price = 100  # Fallback price

@@ -338,15 +338,15 @@ class PaperTradeMonitor:
                 print(f"\n🚨 PLACING LIVE ORDER - REAL MONEY!")
                 print("="*50)
                 
-                # Get bid-ask spread for limit price
+                # Use current market price (LTP) as limit price for immediate execution
+                limit_price = entry_price  # Use LTP as limit price
+                
+                # Also get bid-ask for reference
                 bid_price = quote[option_symbol].get('depth', {}).get('buy', [{}])[0].get('price', entry_price)
                 ask_price = quote[option_symbol].get('depth', {}).get('sell', [{}])[0].get('price', entry_price)
                 
-                # Place limit order slightly above ask price to ensure execution
-                limit_price = round(ask_price * 1.01, 2)  # 1% above ask price
-                
-                print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f}")
-                print(f"   Limit Price: ₹{limit_price:.2f}")
+                print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f} | LTP: ₹{entry_price:.2f}")
+                print(f"   Limit Price: ₹{limit_price:.2f} (using current market price)")
                 
                 try:
                     order_id = self.kite.place_order(
