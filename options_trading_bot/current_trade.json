@@ -1,12 +1,14 @@
 {
-  "stock": "HEROMOTOCO",
-  "stock_price": 6333,
-  "option_symbol": "HEROMOTOCO25DEC6350CE",
-  "entry_price": 140.2,
-  "quantity": 150,
-  "target": 151.416,
-  "stop_loss": 98.13999999999999,
-  "entry_time": "14:52:11",
-  "status": "ACTIVE",
-  "is_live": false
+  "stock": "LT",
+  "stock_price": 4053.9,
+  "option_symbol": "LT25DEC4040CE",
+  "entry_price": 63.15,
+  "quantity": 175,
+  "target": 68.202,
+  "stop_loss": 44.205,
+  "entry_time": "09:15:00",
+  "status": "TARGET_HIT",
+  "is_live": false,
+  "exit_price": 82.8,
+  "exit_time": "09:15:04"
 }

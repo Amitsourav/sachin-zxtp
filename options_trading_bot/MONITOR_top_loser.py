@@ -233,7 +233,7 @@ class TopLoserTradeMonitor:
         return None
     
     def find_option_contract(self, stock, spot_price, option_type='PE'):
-        """Find ATM option contract - PE for put options"""
+        """Find one-step ITM PUT option contract"""
         try:
             # Find PE options for the stock (PUT options for losers)
             mask = (self.instruments['name'] == stock) & (self.instruments['instrument_type'] == option_type)
@@ -264,26 +264,44 @@ class TopLoserTradeMonitor:
             if len(options_df) == 0:
                 return None
             
-            # For PUT options, find strike ABOVE current price (ITM or ATM)
+            # For PUT options, ITM means strike ABOVE current price
             strikes = sorted(options_df['strike'].unique())
             
-            # Filter strikes that are above or equal to current price
-            itm_strikes = [s for s in strikes if s >= spot_price]
+            # Find the nearest strike price (ATM)
+            atm_strike = min(strikes, key=lambda x: abs(x - spot_price))
+            
+            # Find one step ITM from ATM
+            # ITM strikes for PUT are those ABOVE the current price
+            itm_strikes = [s for s in strikes if s > spot_price]
             
             if itm_strikes:
-                # Pick the lowest strike that is >= current price (closest to ATM but ITM)
-                selected_strike = min(itm_strikes)
+                # Sort ITM strikes in ascending order (lowest to highest)
+                itm_strikes_sorted = sorted(itm_strikes)
+                
+                # Select the first ITM strike (one step ITM from spot price)
+                selected_strike = itm_strikes_sorted[0]
             else:
-                # If all strikes are below current price, pick the highest one (closest to ATM)
-                selected_strike = max(strikes)
-                print(f"⚠️  All strikes below spot price ₹{spot_price:.2f}, selected highest: ₹{selected_strike:.2f}")
+                # No ITM strikes available
+                # If spot is 1019 and strikes are like [1000, 1010, 1020, 1030]
+                # ATM would be 1020, but it's not ITM (not > 1019)
+                # So we need the next higher strike after ATM
+                strikes_above_atm = [s for s in strikes if s > atm_strike]
+                if strikes_above_atm:
+                    selected_strike = min(strikes_above_atm)  # First strike above ATM
+                else:
+                    selected_strike = atm_strike  # Use ATM if no higher strikes
+                print(f"⚠️  No ITM strikes for spot ₹{spot_price:.2f}, using: ₹{selected_strike:.2f}")
             
-            print(f"\n🎯 PUT Strike Selection:")
+            print(f"\n🎯 PUT Strike Selection (One-Step ITM):")
             print(f"   Spot Price: ₹{spot_price:.2f}")
-            print(f"   Selected Strike: ₹{selected_strike:.2f}")
+            print(f"   ATM Strike: ₹{atm_strike:.2f}")
+            print(f"   Selected Strike (1-Step ITM): ₹{selected_strike:.2f}")
             print(f"   Type: {'ITM' if selected_strike > spot_price else 'ATM' if selected_strike == spot_price else 'OTM'}")
             if selected_strike > spot_price:
                 print(f"   Intrinsic Value: ₹{selected_strike - spot_price:.2f}")
+                # Calculate how many steps ITM
+                itm_position = itm_strikes_sorted.index(selected_strike) + 1 if selected_strike in itm_strikes_sorted else 0
+                print(f"   ITM Position: {itm_position} step(s) ITM")
             
             strike_mask = options_df['strike'] == selected_strike
             final_option = options_df.loc[strike_mask]
