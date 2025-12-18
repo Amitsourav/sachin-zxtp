@@ -339,6 +339,16 @@ class TopLoserTradeMonitor:
                 print(f"\n🚨 PLACING LIVE PUT ORDER - REAL MONEY!")
                 print("="*50)
                 
+                # Get bid-ask spread for limit price
+                bid_price = quote[option_symbol].get('depth', {}).get('buy', [{}])[0].get('price', entry_price)
+                ask_price = quote[option_symbol].get('depth', {}).get('sell', [{}])[0].get('price', entry_price)
+                
+                # Place limit order slightly above ask price to ensure execution
+                limit_price = round(ask_price * 1.01, 2)  # 1% above ask price
+                
+                print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f}")
+                print(f"   Limit Price: ₹{limit_price:.2f}")
+                
                 try:
                     order_id = self.kite.place_order(
                         variety=self.kite.VARIETY_REGULAR,
@@ -347,7 +357,8 @@ class TopLoserTradeMonitor:
                         transaction_type=self.kite.TRANSACTION_TYPE_BUY,
                         quantity=quantity,
                         product=self.kite.PRODUCT_MIS,  # Intraday
-                        order_type=self.kite.ORDER_TYPE_MARKET
+                        order_type=self.kite.ORDER_TYPE_LIMIT,
+                        price=limit_price
                     )
                     
                     print(f"✅ LIVE PUT ORDER PLACED!")

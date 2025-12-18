@@ -248,7 +248,28 @@ class FixedLive915Trader:
         print(f"Quantity: {quantity} (Lot size: {option['lot_size']})")
         
         try:
-            # Place BUY order
+            # Get current bid-ask for limit price
+            option_symbol = f"NFO:{option['tradingsymbol']}"
+            quote = self.kite.quote([option_symbol])
+            
+            if option_symbol in quote:
+                option_data = quote[option_symbol]
+                last_price = option_data['last_price']
+                
+                # Get bid-ask spread
+                bid_price = option_data.get('depth', {}).get('buy', [{}])[0].get('price', last_price)
+                ask_price = option_data.get('depth', {}).get('sell', [{}])[0].get('price', last_price)
+                
+                # Place limit order slightly above ask to ensure execution
+                limit_price = round(ask_price * 1.01, 2)  # 1% above ask
+                
+                print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f} | LTP: ₹{last_price:.2f}")
+                print(f"   Limit Price: ₹{limit_price:.2f}")
+            else:
+                print("⚠️  Could not fetch quote, using estimated price")
+                limit_price = 100  # Fallback price
+            
+            # Place BUY order with LIMIT
             order_id = self.kite.place_order(
                 variety=self.kite.VARIETY_REGULAR,
                 exchange=self.kite.EXCHANGE_NFO,
@@ -256,7 +277,8 @@ class FixedLive915Trader:
                 transaction_type=self.kite.TRANSACTION_TYPE_BUY,
                 quantity=quantity,
                 product=self.kite.PRODUCT_MIS,  # Intraday
-                order_type=self.kite.ORDER_TYPE_MARKET
+                order_type=self.kite.ORDER_TYPE_LIMIT,
+                price=limit_price
             )
             
             print(f"✅ ORDER PLACED!")

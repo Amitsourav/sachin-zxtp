@@ -1,14 +1,15 @@
 {
-  "stock": "LT",
-  "stock_price": 4053.9,
-  "option_symbol": "LT25DEC4040CE",
-  "entry_price": 63.15,
-  "quantity": 175,
-  "target": 68.202,
-  "stop_loss": 44.205,
-  "entry_time": "09:15:00",
-  "status": "TARGET_HIT",
+  "stock": "SUNPHARMA",
+  "stock_price": 1742.9,
+  "option_symbol": "SUNPHARMA25DEC1760PE",
+  "option_type": "PUT",
+  "entry_price": 28,
+  "quantity": 350,
+  "target": 30.240000000000002,
+  "stop_loss": 19.599999999999998,
+  "entry_time": "14:27:01",
+  "status": "MANUAL_EXIT",
   "is_live": false,
-  "exit_price": 82.8,
-  "exit_time": "09:15:04"
+  "exit_price": 28,
+  "exit_time": "14:27:22"
 }
