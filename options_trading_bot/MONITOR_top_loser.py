@@ -329,9 +329,10 @@ class TopLoserTradeMonitor:
             entry_price = quote[option_symbol]['last_price']
             quantity = int(option['lot_size'])
             
-            # Calculate target and stop-loss (8% target, 30% SL as per strategy)
-            target_price = entry_price * 1.08  # 8% profit target
-            stop_loss = entry_price * 0.70     # 30% stop loss
+            # Calculate initial stop-loss only (NO TARGET - using trailing stop loss)
+            # Target is removed - trade only exits on trailing stop loss
+            target_price = entry_price * 10.0  # Set very high target (won't be used)
+            stop_loss = entry_price * 0.70     # 30% initial stop loss
             
             # Check if live trading
             if hasattr(self, 'is_live') and self.is_live:
@@ -402,8 +403,8 @@ class TopLoserTradeMonitor:
             print(f"   PUT Option: {option['tradingsymbol']}")
             print(f"   Entry: ₹{entry_price:.2f} x {quantity}")
             print(f"   Investment: ₹{entry_price * quantity:,.2f}")
-            print(f"   Target: ₹{target_price:.2f} (+8%)")
-            print(f"   Stop Loss: ₹{stop_loss:.2f} (-30%)")
+            print(f"   Initial Stop Loss: ₹{stop_loss:.2f} (-30%)")
+            print(f"   🔄 TRAILING STOP LOSS ACTIVE - NO FIXED TARGET")
             
             # Save trade to file
             with open('current_trade.json', 'w') as f:
@@ -415,18 +416,80 @@ class TopLoserTradeMonitor:
             print(f"❌ Trade execution failed: {e}")
             return False
     
+    def calculate_trailing_stop_loss(self, entry_price, current_pnl_percent):
+        """
+        Calculate dynamic trailing stop loss based on profit levels
+        
+        Trailing Stop Loss Logic:
+        - 8% profit → 5% stop loss
+        - 12% profit → 9% stop loss
+        - 16% profit → 13% stop loss
+        - 20% profit → 16% stop loss
+        - 25% profit → 20% stop loss
+        - 30% profit → 24% stop loss
+        - 40% profit → 32% stop loss
+        - And so on (80% of profit level)
+        """
+        # Define profit thresholds and corresponding stop losses
+        trailing_stops = [
+            (8, 5),     # 8% profit → 5% stop loss
+            (12, 9),    # 12% profit → 9% stop loss
+            (16, 13),   # 16% profit → 13% stop loss
+            (20, 16),   # 20% profit → 16% stop loss
+            (25, 20),   # 25% profit → 20% stop loss
+            (30, 24),   # 30% profit → 24% stop loss
+            (40, 32),   # 40% profit → 32% stop loss
+            (50, 40),   # 50% profit → 40% stop loss
+            (60, 48),   # 60% profit → 48% stop loss
+            (70, 56),   # 70% profit → 56% stop loss
+            (80, 64),   # 80% profit → 64% stop loss
+            (90, 72),   # 90% profit → 72% stop loss
+            (100, 80),  # 100% profit → 80% stop loss
+        ]
+        
+        # Default stop loss (30% as per original strategy)
+        stop_loss_percent = -30.0
+        
+        # Check if profit has reached any threshold
+        for profit_threshold, new_sl in trailing_stops:
+            if current_pnl_percent >= profit_threshold:
+                # Update stop loss to the new level
+                stop_loss_percent = new_sl
+        
+        # Calculate actual stop loss price
+        # If we have 8% profit, SL is at 5% profit (entry_price * 1.05)
+        if stop_loss_percent > 0:
+            # Trailing stop is in profit
+            stop_loss_price = entry_price * (1 + stop_loss_percent / 100)
+        else:
+            # Initial stop loss (negative)
+            stop_loss_price = entry_price * (1 + stop_loss_percent / 100)
+        
+        return stop_loss_price, stop_loss_percent
+
     def monitor_position(self):
-        """Monitor live position with real-time P&L"""
+        """Monitor live position with real-time P&L and TRAILING STOP LOSS"""
         if not self.active_position:
             print("❌ No active position to monitor")
             return
         
         print("\n" + "="*80)
-        print("📉 MONITORING PUT POSITION (Press Ctrl+C to stop)")
+        print("📉 MONITORING PUT POSITION WITH TRAILING STOP LOSS")
+        print("="*80)
+        print("🔄 TRAILING STOP LOSS SYSTEM - NO FIXED TARGET")
+        print("   Trade will ONLY exit when trailing stop loss is hit")
+        print("   8% profit → SL moves to 5% | 12% profit → SL moves to 9%")
+        print("   16% profit → SL moves to 13% | 20% profit → SL moves to 16%")
+        print("   25% profit → SL moves to 20% | 30% profit → SL moves to 24%")
+        print("   40% profit → SL moves to 32% | And so on...")
         print("="*80)
         
         position = self.active_position
         option_symbol = f"NFO:{position['option_symbol']}"
+        
+        # Track the highest stop loss level reached
+        highest_sl_price = position['stop_loss']  # Start with initial stop loss
+        highest_sl_percent = -30.0  # Initial stop loss percent
         
         try:
             while position['status'] == 'ACTIVE':
@@ -440,6 +503,24 @@ class TopLoserTradeMonitor:
                     pnl = (current_price - position['entry_price']) * position['quantity']
                     pnl_percent = ((current_price - position['entry_price']) / position['entry_price']) * 100
                     
+                    # Calculate trailing stop loss
+                    new_sl_price, new_sl_percent = self.calculate_trailing_stop_loss(
+                        position['entry_price'], 
+                        pnl_percent
+                    )
+                    
+                    # Only update stop loss if it's higher than the previous one (trailing up only)
+                    if new_sl_price > highest_sl_price:
+                        highest_sl_price = new_sl_price
+                        highest_sl_percent = new_sl_percent
+                        position['stop_loss'] = highest_sl_price  # Update position's stop loss
+                        
+                        # Alert when stop loss is updated
+                        print(f"\n🔄 TRAILING STOP LOSS UPDATED!")
+                        print(f"   Profit reached: {pnl_percent:.2f}%")
+                        print(f"   New Stop Loss: ₹{highest_sl_price:.2f} ({highest_sl_percent:+.1f}%)")
+                        print("")
+                    
                     # Status indicators
                     if pnl > 0:
                         status = "✅"
@@ -451,32 +532,31 @@ class TopLoserTradeMonitor:
                     # Format output
                     timestamp = datetime.now().strftime('%H:%M:%S')
                     
+                    # Show trailing stop loss level in output
+                    sl_display = f"TSL: ₹{highest_sl_price:.2f}"
+                    if highest_sl_percent > 0:
+                        sl_display += f" (+{highest_sl_percent:.1f}%)"
+                    else:
+                        sl_display += f" ({highest_sl_percent:.1f}%)"
+                    
                     # Print update on new line (like your screenshot)
                     print(f"[{timestamp}] {position['option_symbol']} | "
                           f"LTP: ₹{current_price:.2f} | "
                           f"P&L: ₹{pnl:+.2f} ({pnl_percent:+.2f}%) {status} | "
-                          f"Target: ₹{position['target']:.2f} | "
-                          f"SL: ₹{position['stop_loss']:.2f}")
+                          f"{sl_display}")
                     
-                    # Check for target or stop-loss hit
-                    if current_price >= position['target']:
+                    # Check ONLY for stop-loss hit (NO TARGET EXIT)
+                    if current_price <= highest_sl_price:  # Use the trailing stop loss
                         print(f"\n\n{'='*80}")
-                        print(f"🎯 TARGET REACHED!")
+                        print(f"🛑 TRAILING STOP LOSS HIT!")
                         print(f"Exit Price: ₹{current_price:.2f}")
-                        print(f"Profit: ₹{pnl:.2f} ({pnl_percent:.2f}%)")
+                        if pnl > 0:
+                            print(f"Locked Profit: ₹{pnl:.2f} ({pnl_percent:.2f}%)")
+                        else:
+                            print(f"Loss: ₹{pnl:.2f} ({pnl_percent:.2f}%)")
+                        print(f"Stop Loss Level: {highest_sl_percent:+.1f}%")
                         print(f"{'='*80}")
-                        position['status'] = 'TARGET_HIT'
-                        position['exit_price'] = current_price
-                        position['exit_time'] = timestamp
-                        break
-                    
-                    elif current_price <= position['stop_loss']:
-                        print(f"\n\n{'='*80}")
-                        print(f"🛑 STOP LOSS HIT!")
-                        print(f"Exit Price: ₹{current_price:.2f}")
-                        print(f"Loss: ₹{pnl:.2f} ({pnl_percent:.2f}%)")
-                        print(f"{'='*80}")
-                        position['status'] = 'SL_HIT'
+                        position['status'] = 'TSL_HIT'
                         position['exit_price'] = current_price
                         position['exit_time'] = timestamp
                         break
