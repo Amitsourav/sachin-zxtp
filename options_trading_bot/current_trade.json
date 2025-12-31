@@ -1,15 +1,14 @@
 {
-  "stock": "SUNPHARMA",
-  "stock_price": 1742.9,
-  "option_symbol": "SUNPHARMA25DEC1760PE",
-  "option_type": "PUT",
-  "entry_price": 28,
-  "quantity": 350,
-  "target": 30.240000000000002,
-  "stop_loss": 19.599999999999998,
-  "entry_time": "14:27:01",
-  "status": "MANUAL_EXIT",
-  "is_live": false,
-  "exit_price": 28,
-  "exit_time": "14:27:22"
+  "stock": "JSWSTEEL",
+  "stock_price": 1152.7,
+  "option_symbol": "JSWSTEEL26JAN1150CE",
+  "entry_price": 36.55,
+  "quantity": 675,
+  "target": 365.5,
+  "stop_loss": 39.8395,
+  "entry_time": "09:20:09",
+  "status": "TSL_HIT",
+  "is_live": true,
+  "exit_price": 39.75,
+  "exit_time": "09:22:44"
 }

@@ -339,23 +339,16 @@ class PaperTradeMonitor:
                 print(f"\n🚨 PLACING LIVE ORDER - REAL MONEY!")
                 print("="*50)
                 
-                # Get bid-ask for better execution pricing
+                # Use current market price (LTP) as limit price - ALWAYS
+                limit_price = entry_price  # ALWAYS use current price as limit price
+                
+                # Get bid-ask for reference only
                 depth = quote[option_symbol].get('depth', {})
                 bid_price = depth.get('buy', [{}])[0].get('price', entry_price) if depth.get('buy') else entry_price
                 ask_price = depth.get('sell', [{}])[0].get('price', entry_price) if depth.get('sell') else entry_price
                 
-                # Smart limit price for 9:15 AM execution
-                if ask_price > 0 and ask_price != entry_price:
-                    # Use ASK price for immediate execution (what sellers are asking)
-                    limit_price = ask_price
-                    price_strategy = "ASK price (immediate fill)"
-                else:
-                    # If no ASK available, add buffer to LTP for market volatility
-                    limit_price = entry_price * 1.02  # 2% above LTP for execution
-                    price_strategy = "LTP + 2% buffer (market volatility)"
-                
                 print(f"   Bid: ₹{bid_price:.2f} | Ask: ₹{ask_price:.2f} | LTP: ₹{entry_price:.2f}")
-                print(f"   Limit Price: ₹{limit_price:.2f} ({price_strategy})")
+                print(f"   Limit Price: ₹{limit_price:.2f} (using current market price)")
                 
                 try:
                     order_id = self.kite.place_order(
@@ -497,10 +490,6 @@ class PaperTradeMonitor:
         highest_sl_price = position['stop_loss']  # Start with initial stop loss
         highest_sl_percent = -30.0  # Initial stop loss percent
         
-        # Track when position was entered for minimum time before trailing stop
-        position_start_time = datetime.now()
-        MIN_TIME_BEFORE_TRAILING = 60  # Wait 60 seconds before activating trailing stop
-        
         try:
             while position['status'] == 'ACTIVE':
                 # Get current price
@@ -513,33 +502,23 @@ class PaperTradeMonitor:
                     pnl = (current_price - position['entry_price']) * position['quantity']
                     pnl_percent = ((current_price - position['entry_price']) / position['entry_price']) * 100
                     
-                    # Check if enough time has passed to activate trailing stop
-                    time_elapsed = (datetime.now() - position_start_time).total_seconds()
+                    # Calculate trailing stop loss IMMEDIATELY - no waiting
+                    new_sl_price, new_sl_percent = self.calculate_trailing_stop_loss(
+                        position['entry_price'], 
+                        pnl_percent
+                    )
                     
-                    # Only activate trailing stop after minimum time
-                    if time_elapsed >= MIN_TIME_BEFORE_TRAILING:
-                        # Calculate trailing stop loss
-                        new_sl_price, new_sl_percent = self.calculate_trailing_stop_loss(
-                            position['entry_price'], 
-                            pnl_percent
-                        )
+                    # Only update stop loss if it's higher than the previous one (trailing up only)
+                    if new_sl_price > highest_sl_price:
+                        highest_sl_price = new_sl_price
+                        highest_sl_percent = new_sl_percent
+                        position['stop_loss'] = highest_sl_price  # Update position's stop loss
                         
-                        # Only update stop loss if it's higher than the previous one (trailing up only)
-                        if new_sl_price > highest_sl_price:
-                            highest_sl_price = new_sl_price
-                            highest_sl_percent = new_sl_percent
-                            position['stop_loss'] = highest_sl_price  # Update position's stop loss
-                            
-                            # Alert when stop loss is updated
-                            print(f"\n🔄 TRAILING STOP LOSS UPDATED!")
-                            print(f"   Profit reached: {pnl_percent:.2f}%")
-                            print(f"   New Stop Loss: ₹{highest_sl_price:.2f} ({highest_sl_percent:+.1f}%)")
-                            print("")
-                    else:
-                        # Show waiting message in first update
-                        if time_elapsed < 5:
-                            print(f"\n⏳ Trailing stop activates in {MIN_TIME_BEFORE_TRAILING - int(time_elapsed)} seconds...")
-                            print("")
+                        # Alert when stop loss is updated
+                        print(f"\n🔄 TRAILING STOP LOSS UPDATED!")
+                        print(f"   Profit reached: {pnl_percent:.2f}%")
+                        print(f"   New Stop Loss: ₹{highest_sl_price:.2f} ({highest_sl_percent:+.1f}%)")
+                        print("")
                     
                     # Status indicators
                     if pnl > 0:
@@ -553,14 +532,11 @@ class PaperTradeMonitor:
                     timestamp = datetime.now().strftime('%H:%M:%S')
                     
                     # Show trailing stop loss level in output
-                    if time_elapsed < MIN_TIME_BEFORE_TRAILING:
-                        sl_display = f"SL: ₹{highest_sl_price:.2f} (-30%) | TSL in {MIN_TIME_BEFORE_TRAILING - int(time_elapsed)}s"
+                    sl_display = f"TSL: ₹{highest_sl_price:.2f}"
+                    if highest_sl_percent > 0:
+                        sl_display += f" (+{highest_sl_percent:.1f}%)"
                     else:
-                        sl_display = f"TSL: ₹{highest_sl_price:.2f}"
-                        if highest_sl_percent > 0:
-                            sl_display += f" (+{highest_sl_percent:.1f}%)"
-                        else:
-                            sl_display += f" ({highest_sl_percent:.1f}%)"
+                        sl_display += f" ({highest_sl_percent:.1f}%)"
                     
                     # Print update on new line (like your screenshot)
                     print(f"[{timestamp}] {position['option_symbol']} | "
