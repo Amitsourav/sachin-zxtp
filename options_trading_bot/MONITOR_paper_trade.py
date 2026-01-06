@@ -193,9 +193,9 @@ class PaperTradeMonitor:
                     time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_gainers(self):
-        """Scan for top gainers immediately at market open"""
-        print(f"\n⚡ IMMEDIATE MARKET OPEN SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
-        print("Capturing opening prices before they spike up")
+        """Scan for stocks with LIVE PRICES at 9:15:01"""
+        print(f"\n⚡ LIVE PRICE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
+        print("Using CURRENT LIVE PRICES at 9:15:01 - NOT comparing to yesterday!")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -208,47 +208,43 @@ class PaperTradeMonitor:
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
-                if 'ohlc' in data and 'close' in data['ohlc']:
-                    prev_close = data['ohlc']['close']
-                    open_price = data['ohlc'].get('open', prev_close)
-                    ltp = data.get('last_price', 0)
-                    volume = data.get('volume', 0)
+                # Get LIVE price at 9:15:01
+                ltp = data.get('last_price', 0)
+                open_price = data['ohlc'].get('open', ltp) if 'ohlc' in data else ltp
+                volume = data.get('volume', 0)
+                
+                if ltp > 0 and open_price > 0:
+                    # Compare current price to today's open (both at 9:15:01)
+                    # If open and LTP are same, still include them
+                    change_pct = ((ltp - open_price) / open_price) * 100 if open_price != ltp else 0
                     
-                    # Basic validation - just ensure we have valid prices
-                    if prev_close > 0 and ltp > 0:
-                        # Calculate change from previous close
-                        change_pct = ((ltp - prev_close) / prev_close) * 100
-                        
-                        # At market open, LTP might equal open price (this is normal)
-                        # We want ANY positive change, even small ones
-                        if change_pct > 0:  # Any positive gain
-                            gainers.append({
-                                'symbol': symbol.split(':')[1],
-                                'ltp': ltp,
-                                'open': open_price,
-                                'prev_close': prev_close,
-                                'change': change_pct,
-                                'gap_up': ((open_price - prev_close) / prev_close) * 100 if open_price > 0 else 0,
-                                'volume': volume
-                            })
+                    # For gainers, we want stocks that opened higher or rose immediately
+                    if change_pct >= 0:  # Including 0 change
+                        gainers.append({
+                            'symbol': symbol.split(':')[1],
+                            'ltp': ltp,  # LIVE PRICE at 9:15:01
+                            'open': open_price,  # Opening price at 9:15:01
+                            'change': change_pct,  # Movement from open
+                            'volume': volume
+                        })
         
         if gainers:
             gainers.sort(key=lambda x: x['change'], reverse=True)
             
-            print("\n📊 TOP GAINERS (Validated Prices):")
-            print("-"*80)
-            print(f"{'Stock':<12} {'Close':<10} {'Open':<10} {'LTP':<10} {'Change%':<8} {'Volume':<12}")
-            print("-"*80)
+            print("\n📊 STOCKS BY LIVE PRICE AT 9:15:01:")
+            print("-"*70)
+            print(f"{'Rank':<5} {'Stock':<12} {'Live Price':<12} {'Open':<12} {'Move':<8}")
+            print("-"*70)
             for i, g in enumerate(gainers[:5], 1):
-                print(f"{i}. {g['symbol']:<10} ₹{g['prev_close']:8.2f}  ₹{g['open']:8.2f}  ₹{g['ltp']:8.2f}  {g['change']:+6.2f}%  {g['volume']:>10,}")
-            print("-"*80)
+                print(f"{i:<5} {g['symbol']:<12} ₹{g['ltp']:<10.2f} ₹{g['open']:<10.2f} {g['change']:+.2f}%")
+            print("-"*70)
             
             # Show selected stock details
             selected = gainers[0]
             print(f"\n✅ Selected: {selected['symbol']}")
-            print(f"   Market Open Price Captured!")
-            print(f"   Open: ₹{selected['open']:.2f} | LTP: ₹{selected['ltp']:.2f}")
-            print(f"   Executing immediately to avoid price spike")
+            print(f"   LIVE PRICE at 9:15:01: ₹{selected['ltp']:.2f}")
+            print(f"   Opening Price: ₹{selected['open']:.2f}")
+            print(f"   Using LIVE PRICE for all calculations")
             
             return gainers[0] if gainers else None
         

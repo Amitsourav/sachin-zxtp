@@ -194,9 +194,9 @@ class TopLoserTradeMonitor:
                     time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_losers(self):
-        """Scan for top LOSERS immediately at market open"""
-        print(f"\n⚡ IMMEDIATE TOP LOSER SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
-        print("Capturing opening prices before they move further")
+        """Scan for stocks with LIVE PRICES at 9:15:01"""
+        print(f"\n⚡ LIVE PRICE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
+        print("Using CURRENT LIVE PRICES at 9:15:01 - NOT comparing to yesterday!")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -208,28 +208,35 @@ class TopLoserTradeMonitor:
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
-                if 'ohlc' in data and 'close' in data['ohlc']:
-                    prev_close = data['ohlc']['close']
-                    ltp = data.get('last_price', 0)
+                # Get LIVE price at 9:15:01
+                ltp = data.get('last_price', 0)
+                open_price = data['ohlc'].get('open', ltp) if 'ohlc' in data else ltp
+                
+                if ltp > 0 and open_price > 0:
+                    # Compare current price to today's open (both at 9:15:01)
+                    # If open and LTP are same, use small movement detection
+                    change_pct = ((ltp - open_price) / open_price) * 100 if open_price != ltp else 0
                     
-                    if prev_close > 0 and ltp > 0:
-                        change_pct = ((ltp - prev_close) / prev_close) * 100
-                        if change_pct < 0:  # Only negative changes (losers)
-                            losers.append({
-                                'symbol': symbol.split(':')[1],
-                                'ltp': ltp,
-                                'change': change_pct,  # This will be negative
-                                'volume': data.get('volume', 0)
-                            })
+                    # For losers, we want stocks that opened lower or dropped immediately
+                    if change_pct <= 0:  # Including 0 change
+                        losers.append({
+                            'symbol': symbol.split(':')[1],
+                            'ltp': ltp,  # LIVE PRICE at 9:15:01
+                            'open': open_price,  # Opening price at 9:15:01
+                            'change': change_pct,  # Movement from open
+                            'volume': data.get('volume', 0)
+                        })
         
         if losers:
             losers.sort(key=lambda x: x['change'])  # Sort by most negative (biggest loser first)
             
-            print("\n📉 TOP LOSERS:")
-            print("-"*60)
+            print("\n📉 STOCKS BY LIVE PRICE AT 9:15:01:")
+            print("-"*70)
+            print(f"{'Rank':<5} {'Stock':<12} {'Live Price':<12} {'Open':<12} {'Move':<8}")
+            print("-"*70)
             for i, l in enumerate(losers[:5], 1):
-                print(f"{i}. {l['symbol']:<12} ₹{l['ltp']:<10.2f} {l['change']:.2f}%")
-            print("-"*60)
+                print(f"{i:<5} {l['symbol']:<12} ₹{l['ltp']:<10.2f} ₹{l['open']:<10.2f} {l['change']:+.2f}%")
+            print("-"*70)
             
             return losers[0] if losers else None
         
