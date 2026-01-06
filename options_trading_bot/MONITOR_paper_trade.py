@@ -159,8 +159,8 @@ class PaperTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for exactly 9:15:00.000000 for immediate market open execution"""
-        market_open = datetime_time(9, 15, 0, 0)  # Exactly 9:15:00.000000
+        """Wait for 9:15:02 to let market prices stabilize after open"""
+        market_open = datetime_time(9, 15, 0, 0)  # Market opens at 9:15:00
         
         while True:
             now = datetime.now()
@@ -168,7 +168,10 @@ class PaperTradeMonitor:
             
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n⚡ EXECUTING AT MARKET OPEN: {now.strftime('%H:%M:%S.%f')}!")
+                    print(f"\n🔔 MARKET IS NOW OPEN: {now.strftime('%H:%M:%S.%f')}!")
+                    print("⏳ Waiting 2 seconds for market prices to stabilize...")
+                    time.sleep(2.0)  # Wait 2 seconds for prices to update
+                    print(f"⚡ EXECUTING AT: {datetime.now().strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")

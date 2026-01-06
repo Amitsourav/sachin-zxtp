@@ -160,8 +160,8 @@ class TopLoserTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for exactly 9:15:00.000000 for immediate market open execution"""
-        market_open = datetime_time(9, 15, 0, 0)  # Exactly 9:15:00.000000
+        """Wait for 9:15:02 to let market prices stabilize after open"""
+        market_open = datetime_time(9, 15, 0, 0)  # Market opens at 9:15:00
         
         while True:
             now = datetime.now()
@@ -169,7 +169,10 @@ class TopLoserTradeMonitor:
             
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n⚡ EXECUTING TOP LOSER STRATEGY AT MARKET OPEN: {now.strftime('%H:%M:%S.%f')}!")
+                    print(f"\n🔔 MARKET IS NOW OPEN: {now.strftime('%H:%M:%S.%f')}!")
+                    print("⏳ Waiting 2 seconds for market prices to stabilize...")
+                    time.sleep(2.0)  # Wait 2 seconds for prices to update
+                    print(f"⚡ EXECUTING TOP LOSER STRATEGY AT: {datetime.now().strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")
@@ -676,8 +679,8 @@ def main():
     
     print("="*80)
     print("This will:")
-    print("1. Wait for market open at EXACTLY 9:15:00.000000")
-    print("2. Find TOP LOSER from NIFTY50 with opening prices")
+    print("1. Wait for market open + 2 seconds (9:15:02 AM)")
+    print("2. Find TOP LOSER from NIFTY50 with stabilized prices")
     print("   - Strike Selection: ITM/ATM (above current price)")
     if args.live:
         print("3. Execute REAL PUT trade with REAL money")
