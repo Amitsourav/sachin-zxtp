@@ -1,14 +1,14 @@
 {
-  "stock": "JSWSTEEL",
-  "stock_price": 1152.7,
-  "option_symbol": "JSWSTEEL26JAN1150CE",
-  "entry_price": 36.55,
-  "quantity": 675,
-  "target": 365.5,
-  "stop_loss": 39.8395,
-  "entry_time": "09:20:09",
+  "stock": "AXISBANK",
+  "stock_price": 1300,
+  "option_symbol": "AXISBANK26JAN1300CE",
+  "entry_price": 22,
+  "quantity": 625,
+  "target": 220.0,
+  "stop_loss": 23.98,
+  "entry_time": "09:15:03",
   "status": "TSL_HIT",
   "is_live": true,
-  "exit_price": 39.75,
-  "exit_time": "09:22:44"
+  "exit_price": 23.65,
+  "exit_time": "09:15:32"
 }

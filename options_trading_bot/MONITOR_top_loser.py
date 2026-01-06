@@ -3,7 +3,7 @@
 TOP LOSER TRADING WITH LIVE MONITORING
 Finds biggest LOSER from NIFTY50 and trades PUT options
 Shows real-time P&L, targets, and stop-loss
-Waits until 9:15:02 AM for market prices to stabilize before executing trades
+Waits until 9:15:01 AM for market prices to stabilize before executing trades
 """
 
 from kiteconnect import KiteConnect
@@ -160,7 +160,7 @@ class TopLoserTradeMonitor:
         ]
     
     def wait_for_market_open(self):
-        """Wait for 9:15:02 to let market prices stabilize after open"""
+        """Wait for 9:15:01 to let market prices stabilize after open"""
         market_open = datetime_time(9, 15, 0, 0)  # Market opens at 9:15:00
         
         while True:
@@ -170,8 +170,8 @@ class TopLoserTradeMonitor:
             if current_time >= market_open:
                 if now.weekday() < 5:  # Weekday
                     print(f"\n🔔 MARKET IS NOW OPEN: {now.strftime('%H:%M:%S.%f')}!")
-                    print("⏳ Waiting 2 seconds for market prices to stabilize...")
-                    time.sleep(2.0)  # Wait 2 seconds for prices to update
+                    print("⏳ Waiting 1 second for market prices to stabilize...")
+                    time.sleep(1.0)  # Wait 1 second for prices to update
                     print(f"⚡ EXECUTING TOP LOSER STRATEGY AT: {datetime.now().strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
@@ -679,7 +679,7 @@ def main():
     
     print("="*80)
     print("This will:")
-    print("1. Wait for market open + 2 seconds (9:15:02 AM)")
+    print("1. Wait for market open + 1 second (9:15:01 AM)")
     print("2. Find TOP LOSER from NIFTY50 with stabilized prices")
     print("   - Strike Selection: ITM/ATM (above current price)")
     if args.live:
