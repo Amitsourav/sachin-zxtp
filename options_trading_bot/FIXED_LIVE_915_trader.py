@@ -426,6 +426,12 @@ def main():
                     wait_seconds -= 1
                 print("\n\n🔔 MARKET IS NOW OPEN!")
         
+        # Add 1-1.5 second delay at 9:15 to let market stabilize
+        import random
+        delay = random.uniform(1.0, 1.5)
+        print(f"⏳ Waiting {delay:.2f} seconds for market to stabilize...")
+        time.sleep(delay)
+        
         # Execute live strategy
         trader.execute_live_strategy()
         
