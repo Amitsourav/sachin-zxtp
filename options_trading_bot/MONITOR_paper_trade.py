@@ -626,14 +626,14 @@ class PaperTradeMonitor:
             print("❌ No suitable stock found")
             return
         
-        # Check minimum gain threshold
-        MIN_GAIN = 0.3  # Lowered for testing
-        if top_gainer['change'] < MIN_GAIN:
-            print(f"\n⚠️ Top gainer only up {top_gainer['change']:.2f}%")
-            print(f"Minimum {MIN_GAIN}% required")
+        # Check minimum gap-up threshold
+        MIN_GAIN = 0.3  # Minimum gap-up percentage required
+        if top_gainer['gap_up'] < MIN_GAIN:
+            print(f"\n⚠️ Top gainer gap-up only {top_gainer['gap_up']:.2f}%")
+            print(f"Minimum {MIN_GAIN}% gap-up required")
             return
         
-        print(f"\n🎯 SELECTED: {top_gainer['symbol']} (+{top_gainer['change']:.2f}%)")
+        print(f"\n🎯 SELECTED: {top_gainer['symbol']} (Gap-up: +{top_gainer['gap_up']:.2f}%)")
         
         # Find option contract
         option = self.find_option_contract(top_gainer['symbol'], top_gainer['ltp'])
