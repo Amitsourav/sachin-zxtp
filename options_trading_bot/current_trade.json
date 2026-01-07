@@ -1,14 +1,15 @@
 {
-  "stock": "WIPRO",
-  "stock_price": 267.85,
-  "option_symbol": "WIPRO26JAN267.5CE",
-  "entry_price": 6.15,
-  "quantity": 3000,
-  "target": 61.5,
-  "stop_loss": 4.305,
-  "entry_time": "09:28:43",
+  "stock": "HDFCBANK",
+  "stock_price": 949.2,
+  "option_symbol": "HDFCBANK26JAN950PE",
+  "option_type": "PUT",
+  "entry_price": 15.85,
+  "quantity": 550,
+  "target": 158.5,
+  "stop_loss": 11.094999999999999,
+  "entry_time": "09:15:04",
   "status": "MANUAL_EXIT",
-  "is_live": false,
-  "exit_price": 6.15,
-  "exit_time": "09:28:50"
+  "is_live": true,
+  "exit_price": 15.05,
+  "exit_time": "09:32:11"
 }

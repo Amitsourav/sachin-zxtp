@@ -93,18 +93,21 @@ class FixedLive915Trader:
             print(f"❌ Failed to load instruments: {e}")
             sys.exit(1)
         
-        # Updated NIFTY50 watchlist (November 2024)
+        # Updated NIFTY50 watchlist (January 2025)
         self.watchlist = [
-            'NSE:RELIANCE', 'NSE:TCS', 'NSE:HDFCBANK', 'NSE:INFY', 'NSE:ICICIBANK',
-            'NSE:KOTAKBANK', 'NSE:SBIN', 'NSE:BHARTIARTL', 'NSE:ITC', 'NSE:AXISBANK',
-            'NSE:LT', 'NSE:BAJFINANCE', 'NSE:WIPRO', 'NSE:MARUTI', 'NSE:HCLTECH',
-            'NSE:ASIANPAINT', 'NSE:ULTRACEMCO', 'NSE:TITAN', 'NSE:SUNPHARMA', 'NSE:TECHM',
-            'NSE:POWERGRID', 'NSE:NTPC', 'NSE:TATAMOTORS', 'NSE:M&M',
-            'NSE:HINDUNILVR', 'NSE:ADANIPORTS', 'NSE:COALINDIA', 'NSE:DIVISLAB', 'NSE:DRREDDY',
-            'NSE:UPL', 'NSE:ONGC', 'NSE:JSWSTEEL', 'NSE:GRASIM', 'NSE:BPCL',
-            'NSE:CIPLA', 'NSE:EICHERMOT', 'NSE:MAXHEALTH', 'NSE:BAJAJFINSV', 'NSE:NESTLEIND',
-            'NSE:BRITANNIA', 'NSE:TATACONSUM', 'NSE:HINDALCO', 'NSE:SBILIFE', 'NSE:APOLLOHOSP',
-            'NSE:TATASTEEL', 'NSE:SHRIRAMFIN', 'NSE:ADANIENT', 'NSE:LTIM', 'NSE:TRENT', 'NSE:INDIGO'
+            'NSE:ADANIENT', 'NSE:ADANIPORTS', 'NSE:APOLLOHOSP', 'NSE:ASIANPAINT',
+            'NSE:AXISBANK', 'NSE:BAJAJ-AUTO', 'NSE:BAJAJFINSV', 'NSE:BAJFINANCE',
+            'NSE:BEL', 'NSE:BHARTIARTL', 'NSE:CIPLA', 'NSE:COALINDIA',
+            'NSE:DRREDDY', 'NSE:EICHERMOT', 'NSE:ETERNAL', 'NSE:GRASIM',
+            'NSE:HCLTECH', 'NSE:HDFCBANK', 'NSE:HDFCLIFE', 'NSE:HINDALCO',
+            'NSE:HINDUNILVR', 'NSE:ICICIBANK', 'NSE:INDIGO', 'NSE:INFY',
+            'NSE:ITC', 'NSE:JIOFIN', 'NSE:JSWSTEEL', 'NSE:KOTAKBANK',
+            'NSE:LT', 'NSE:M&M', 'NSE:MARUTI', 'NSE:MAXHEALTH',
+            'NSE:NESTLEIND', 'NSE:NTPC', 'NSE:ONGC', 'NSE:POWERGRID',
+            'NSE:RELIANCE', 'NSE:SBILIFE', 'NSE:SBIN', 'NSE:SHRIRAMFIN',
+            'NSE:SUNPHARMA', 'NSE:TATACONSUM', 'NSE:TATASTEEL', 'NSE:TCS',
+            'NSE:TECHM', 'NSE:TITAN', 'NSE:TMPV', 'NSE:TRENT',
+            'NSE:ULTRACEMCO', 'NSE:WIPRO'
         ]
         
     def find_top_gainer(self):

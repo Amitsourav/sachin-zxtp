@@ -98,16 +98,19 @@ class PaperTradeMonitor:
             # Get current large-cap stocks (this is a simplified approach)
             # In reality, you'd need market cap data or use external API
             current_large_caps = [
-                'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
-                'KOTAKBANK', 'SBIN', 'BHARTIARTL', 'ITC', 'AXISBANK',
-                'LT', 'BAJFINANCE', 'WIPRO', 'MARUTI', 'HCLTECH',
-                'ASIANPAINT', 'ULTRACEMCO', 'TITAN', 'SUNPHARMA', 'TECHM',
-                'POWERGRID', 'NTPC', 'TATAMOTORS', 'M&M', 'HINDUNILVR',
-                'ADANIPORTS', 'COALINDIA', 'DIVISLAB', 'DRREDDY', 'UPL',
-                'ONGC', 'JSWSTEEL', 'GRASIM', 'BPCL', 'CIPLA',
-                'EICHERMOT', 'BAJAJFINSV', 'NESTLEIND', 'BRITANNIA', 'TATACONSUM',
-                'HINDALCO', 'SBILIFE', 'APOLLOHOSP', 'TATASTEEL', 'SHRIRAMFIN',
-                'ADANIENT', 'LTIM', 'TRENT', 'INDIGO', 'HEROMOTOCO'
+                'ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT',
+                'AXISBANK', 'BAJAJ-AUTO', 'BAJAJFINSV', 'BAJFINANCE',
+                'BEL', 'BHARTIARTL', 'CIPLA', 'COALINDIA',
+                'DRREDDY', 'EICHERMOT', 'ETERNAL', 'GRASIM',
+                'HCLTECH', 'HDFCBANK', 'HDFCLIFE', 'HINDALCO',
+                'HINDUNILVR', 'ICICIBANK', 'INDIGO', 'INFY',
+                'ITC', 'JIOFIN', 'JSWSTEEL', 'KOTAKBANK',
+                'LT', 'M&M', 'MARUTI', 'MAXHEALTH',
+                'NESTLEIND', 'NTPC', 'ONGC', 'POWERGRID',
+                'RELIANCE', 'SBILIFE', 'SBIN', 'SHRIRAMFIN',
+                'SUNPHARMA', 'TATACONSUM', 'TATASTEEL', 'TCS',
+                'TECHM', 'TITAN', 'TMPV', 'TRENT',
+                'ULTRACEMCO', 'WIPRO'
             ]
             
             # Verify these stocks exist in current instruments
@@ -146,16 +149,19 @@ class PaperTradeMonitor:
     def get_fallback_nifty50(self):
         """Fallback to static NIFTY50 list if dynamic fetch fails"""
         return [
-            'NSE:RELIANCE', 'NSE:TCS', 'NSE:HDFCBANK', 'NSE:INFY', 'NSE:ICICIBANK',
-            'NSE:KOTAKBANK', 'NSE:SBIN', 'NSE:BHARTIARTL', 'NSE:ITC', 'NSE:AXISBANK',
-            'NSE:LT', 'NSE:BAJFINANCE', 'NSE:WIPRO', 'NSE:MARUTI', 'NSE:HCLTECH',
-            'NSE:ASIANPAINT', 'NSE:ULTRACEMCO', 'NSE:TITAN', 'NSE:SUNPHARMA', 'NSE:TECHM',
-            'NSE:POWERGRID', 'NSE:NTPC', 'NSE:TATAMOTORS', 'NSE:M&M', 'NSE:HINDUNILVR',
-            'NSE:ADANIPORTS', 'NSE:COALINDIA', 'NSE:DIVISLAB', 'NSE:DRREDDY', 'NSE:UPL',
-            'NSE:ONGC', 'NSE:JSWSTEEL', 'NSE:GRASIM', 'NSE:BPCL', 'NSE:CIPLA',
-            'NSE:EICHERMOT', 'NSE:BAJAJFINSV', 'NSE:NESTLEIND', 'NSE:BRITANNIA', 'NSE:TATACONSUM',
-            'NSE:HINDALCO', 'NSE:SBILIFE', 'NSE:APOLLOHOSP', 'NSE:TATASTEEL', 'NSE:SHRIRAMFIN',
-            'NSE:ADANIENT', 'NSE:LTIM', 'NSE:TRENT', 'NSE:INDIGO'
+            'NSE:ADANIENT', 'NSE:ADANIPORTS', 'NSE:APOLLOHOSP', 'NSE:ASIANPAINT',
+            'NSE:AXISBANK', 'NSE:BAJAJ-AUTO', 'NSE:BAJAJFINSV', 'NSE:BAJFINANCE',
+            'NSE:BEL', 'NSE:BHARTIARTL', 'NSE:CIPLA', 'NSE:COALINDIA',
+            'NSE:DRREDDY', 'NSE:EICHERMOT', 'NSE:ETERNAL', 'NSE:GRASIM',
+            'NSE:HCLTECH', 'NSE:HDFCBANK', 'NSE:HDFCLIFE', 'NSE:HINDALCO',
+            'NSE:HINDUNILVR', 'NSE:ICICIBANK', 'NSE:INDIGO', 'NSE:INFY',
+            'NSE:ITC', 'NSE:JIOFIN', 'NSE:JSWSTEEL', 'NSE:KOTAKBANK',
+            'NSE:LT', 'NSE:M&M', 'NSE:MARUTI', 'NSE:MAXHEALTH',
+            'NSE:NESTLEIND', 'NSE:NTPC', 'NSE:ONGC', 'NSE:POWERGRID',
+            'NSE:RELIANCE', 'NSE:SBILIFE', 'NSE:SBIN', 'NSE:SHRIRAMFIN',
+            'NSE:SUNPHARMA', 'NSE:TATACONSUM', 'NSE:TATASTEEL', 'NSE:TCS',
+            'NSE:TECHM', 'NSE:TITAN', 'NSE:TMPV', 'NSE:TRENT',
+            'NSE:ULTRACEMCO', 'NSE:WIPRO'
         ]
     
     def wait_for_market_open(self):
