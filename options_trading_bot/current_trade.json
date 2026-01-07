@@ -1,14 +1,14 @@
 {
-  "stock": "AXISBANK",
-  "stock_price": 1300,
-  "option_symbol": "AXISBANK26JAN1300CE",
-  "entry_price": 22,
-  "quantity": 625,
-  "target": 220.0,
-  "stop_loss": 23.98,
-  "entry_time": "09:15:03",
-  "status": "TSL_HIT",
-  "is_live": true,
-  "exit_price": 23.65,
-  "exit_time": "09:15:32"
+  "stock": "WIPRO",
+  "stock_price": 267.85,
+  "option_symbol": "WIPRO26JAN267.5CE",
+  "entry_price": 6.15,
+  "quantity": 3000,
+  "target": 61.5,
+  "stop_loss": 4.305,
+  "entry_time": "09:28:43",
+  "status": "MANUAL_EXIT",
+  "is_live": false,
+  "exit_price": 6.15,
+  "exit_time": "09:28:50"
 }

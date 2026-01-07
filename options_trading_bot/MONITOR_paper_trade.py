@@ -193,9 +193,9 @@ class PaperTradeMonitor:
                     time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_gainers(self):
-        """Scan for stocks with LIVE PRICES at 9:15:01"""
+        """Scan for TOP GAINERS using LIVE PRICES at 9:15:01"""
         print(f"\n⚡ LIVE PRICE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
-        print("Using CURRENT LIVE PRICES at 9:15:01 - NOT comparing to yesterday!")
+        print("Finding TOP GAINER by gap-up, trading with LIVE PRICE at 9:15:01")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -208,43 +208,44 @@ class PaperTradeMonitor:
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
-                # Get LIVE price at 9:15:01
+                # Get LIVE price at 9:15:01 - THIS is what we trade at
                 ltp = data.get('last_price', 0)
                 open_price = data['ohlc'].get('open', ltp) if 'ohlc' in data else ltp
+                prev_close = data['ohlc'].get('close', 0) if 'ohlc' in data else 0
                 volume = data.get('volume', 0)
                 
-                if ltp > 0 and open_price > 0:
-                    # Compare current price to today's open (both at 9:15:01)
-                    # If open and LTP are same, still include them
-                    change_pct = ((ltp - open_price) / open_price) * 100 if open_price != ltp else 0
+                if ltp > 0 and prev_close > 0:
+                    # Calculate gap-up percentage for RANKING ONLY
+                    gap_up_pct = ((open_price - prev_close) / prev_close) * 100
                     
-                    # For gainers, we want stocks that opened higher or rose immediately
-                    if change_pct >= 0:  # Including 0 change
+                    # We want stocks that gapped up at open
+                    if gap_up_pct > 0:  # Positive gap-up
                         gainers.append({
                             'symbol': symbol.split(':')[1],
-                            'ltp': ltp,  # LIVE PRICE at 9:15:01
-                            'open': open_price,  # Opening price at 9:15:01
-                            'change': change_pct,  # Movement from open
+                            'ltp': ltp,  # LIVE PRICE at 9:15:01 - for trading
+                            'open': open_price,  # Opening price
+                            'prev_close': prev_close,  # Yesterday's close - for reference only
+                            'gap_up': gap_up_pct,  # Gap-up % - for ranking
                             'volume': volume
                         })
         
         if gainers:
-            gainers.sort(key=lambda x: x['change'], reverse=True)
+            gainers.sort(key=lambda x: x['gap_up'], reverse=True)  # Sort by gap-up percentage
             
-            print("\n📊 STOCKS BY LIVE PRICE AT 9:15:01:")
-            print("-"*70)
-            print(f"{'Rank':<5} {'Stock':<12} {'Live Price':<12} {'Open':<12} {'Move':<8}")
-            print("-"*70)
+            print("\n📊 TOP GAINERS BY GAP-UP (Trading at LIVE PRICE):")
+            print("-"*85)
+            print(f"{'Rank':<5} {'Stock':<12} {'Live@9:15:01':<15} {'Open':<12} {'PrevClose':<12} {'Gap-Up%':<10}")
+            print("-"*85)
             for i, g in enumerate(gainers[:5], 1):
-                print(f"{i:<5} {g['symbol']:<12} ₹{g['ltp']:<10.2f} ₹{g['open']:<10.2f} {g['change']:+.2f}%")
-            print("-"*70)
+                print(f"{i:<5} {g['symbol']:<12} ₹{g['ltp']:<13.2f} ₹{g['open']:<10.2f} ₹{g['prev_close']:<10.2f} {g['gap_up']:+8.2f}%")
+            print("-"*85)
             
             # Show selected stock details
             selected = gainers[0]
-            print(f"\n✅ Selected: {selected['symbol']}")
-            print(f"   LIVE PRICE at 9:15:01: ₹{selected['ltp']:.2f}")
-            print(f"   Opening Price: ₹{selected['open']:.2f}")
-            print(f"   Using LIVE PRICE for all calculations")
+            print(f"\n✅ Selected TOP GAINER: {selected['symbol']}")
+            print(f"   Gap-up: {selected['gap_up']:.2f}% (highest gap-up)")
+            print(f"   TRADING AT LIVE PRICE: ₹{selected['ltp']:.2f} (at 9:15:01)")
+            print(f"   All option calculations use this LIVE PRICE")
             
             return gainers[0] if gainers else None
         

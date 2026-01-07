@@ -194,9 +194,9 @@ class TopLoserTradeMonitor:
                     time.sleep(0.001)  # Check every 1ms for microsecond precision
     
     def scan_top_losers(self):
-        """Scan for stocks with LIVE PRICES at 9:15:01"""
+        """Scan for TOP LOSERS using LIVE PRICES at 9:15:01"""
         print(f"\n⚡ LIVE PRICE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
-        print("Using CURRENT LIVE PRICES at 9:15:01 - NOT comparing to yesterday!")
+        print("Finding TOP LOSER by gap-down, trading with LIVE PRICE at 9:15:01")
         
         try:
             quotes = self.kite.quote(self.watchlist)
@@ -208,35 +208,37 @@ class TopLoserTradeMonitor:
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
-                # Get LIVE price at 9:15:01
+                # Get LIVE price at 9:15:01 - THIS is what we trade at
                 ltp = data.get('last_price', 0)
                 open_price = data['ohlc'].get('open', ltp) if 'ohlc' in data else ltp
+                prev_close = data['ohlc'].get('close', 0) if 'ohlc' in data else 0
+                volume = data.get('volume', 0)
                 
-                if ltp > 0 and open_price > 0:
-                    # Compare current price to today's open (both at 9:15:01)
-                    # If open and LTP are same, use small movement detection
-                    change_pct = ((ltp - open_price) / open_price) * 100 if open_price != ltp else 0
+                if ltp > 0 and prev_close > 0:
+                    # Calculate gap-down percentage for RANKING ONLY
+                    gap_down_pct = ((open_price - prev_close) / prev_close) * 100
                     
-                    # For losers, we want stocks that opened lower or dropped immediately
-                    if change_pct <= 0:  # Including 0 change
+                    # We want stocks that gapped down at open
+                    if gap_down_pct < 0:  # Negative gap-down
                         losers.append({
                             'symbol': symbol.split(':')[1],
-                            'ltp': ltp,  # LIVE PRICE at 9:15:01
-                            'open': open_price,  # Opening price at 9:15:01
-                            'change': change_pct,  # Movement from open
-                            'volume': data.get('volume', 0)
+                            'ltp': ltp,  # LIVE PRICE at 9:15:01 - for trading
+                            'open': open_price,  # Opening price
+                            'prev_close': prev_close,  # Yesterday's close - for reference only
+                            'gap_down': gap_down_pct,  # Gap-down % - for ranking
+                            'volume': volume
                         })
         
         if losers:
-            losers.sort(key=lambda x: x['change'])  # Sort by most negative (biggest loser first)
+            losers.sort(key=lambda x: x['gap_down'])  # Sort by most negative gap-down first
             
-            print("\n📉 STOCKS BY LIVE PRICE AT 9:15:01:")
-            print("-"*70)
-            print(f"{'Rank':<5} {'Stock':<12} {'Live Price':<12} {'Open':<12} {'Move':<8}")
-            print("-"*70)
+            print("\n📉 TOP LOSERS BY GAP-DOWN (Trading at LIVE PRICE):")
+            print("-"*85)
+            print(f"{'Rank':<5} {'Stock':<12} {'Live@9:15:01':<15} {'Open':<12} {'PrevClose':<12} {'Gap-Down%':<10}")
+            print("-"*85)
             for i, l in enumerate(losers[:5], 1):
-                print(f"{i:<5} {l['symbol']:<12} ₹{l['ltp']:<10.2f} ₹{l['open']:<10.2f} {l['change']:+.2f}%")
-            print("-"*70)
+                print(f"{i:<5} {l['symbol']:<12} ₹{l['ltp']:<13.2f} ₹{l['open']:<10.2f} ₹{l['prev_close']:<10.2f} {l['gap_down']:8.2f}%")
+            print("-"*85)
             
             return losers[0] if losers else None
         
@@ -633,13 +635,15 @@ class TopLoserTradeMonitor:
             return
         
         # Check minimum loss threshold
-        MIN_LOSS = -0.3  # Minimum 0.3% loss required (negative value)
-        if top_loser['change'] > MIN_LOSS:
-            print(f"\n⚠️ Top loser only down {top_loser['change']:.2f}%")
-            print(f"Minimum {abs(MIN_LOSS)}% loss required")
+        MIN_LOSS = -0.3  # Minimum 0.3% gap-down required (negative value)
+        if top_loser['gap_down'] > MIN_LOSS:
+            print(f"\n⚠️ Top loser gap-down only {top_loser['gap_down']:.2f}%")
+            print(f"Minimum {abs(MIN_LOSS)}% gap-down required")
             return
         
-        print(f"\n🎯 SELECTED LOSER: {top_loser['symbol']} ({top_loser['change']:.2f}%)")
+        print(f"\n🎯 SELECTED TOP LOSER: {top_loser['symbol']}")
+        print(f"   Gap-down: {top_loser['gap_down']:.2f}% (biggest gap-down)")
+        print(f"   TRADING AT LIVE PRICE: ₹{top_loser['ltp']:.2f} (at 9:15:01)")
         
         # Find PUT option contract
         option = self.find_option_contract(top_loser['symbol'], top_loser['ltp'], 'PE')
