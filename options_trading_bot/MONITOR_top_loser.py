@@ -418,7 +418,7 @@ class TopLoserTradeMonitor:
                 'is_live': hasattr(self, 'is_live') and self.is_live
             }
             
-            print(f"   Stock: {stock['symbol']} @ ₹{stock['ltp']:.2f} ({stock['change']:.2f}%)")
+            print(f"   Stock: {stock['symbol']} @ ₹{stock['ltp']:.2f} (Gap-down: {stock['gap_down']:.2f}%)")
             print(f"   PUT Option: {option['tradingsymbol']}")
             print(f"   Entry: ₹{entry_price:.2f} x {quantity}")
             print(f"   Investment: ₹{entry_price * quantity:,.2f}")
