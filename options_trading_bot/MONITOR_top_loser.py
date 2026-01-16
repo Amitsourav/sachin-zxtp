@@ -165,20 +165,38 @@ class TopLoserTradeMonitor:
             'NSE:ULTRACEMCO', 'NSE:WIPRO'
         ]
     
-    def wait_for_market_open(self):
-        """Wait for 9:15:01 to let market prices stabilize after open"""
-        market_open = datetime_time(9, 15, 0, 0)  # Market opens at 9:15:00
+    def wait_for_premarket_and_execute(self):
+        """Monitor pre-market (9:00-9:15) then scan and pick at 9:15"""
+        premarket_start = datetime_time(9, 0, 0, 0)   # Pre-market starts at 9:00:00
+        market_open = datetime_time(9, 15, 0, 0)      # Market opens at 9:15:00
         
         while True:
             now = datetime.now()
             current_time = now.time()
             
-            if current_time >= market_open:
+            if current_time >= premarket_start and current_time < market_open:
                 if now.weekday() < 5:  # Weekday
-                    print(f"\n🔔 MARKET IS NOW OPEN: {now.strftime('%H:%M:%S.%f')}!")
-                    print("⏳ Waiting 1 second for market prices to stabilize...")
-                    time.sleep(1.0)  # Wait 1 second for prices to update
-                    print(f"⚡ EXECUTING TOP LOSER STRATEGY AT: {datetime.now().strftime('%H:%M:%S.%f')}!")
+                    print(f"\n📊 PRE-MARKET ANALYSIS SESSION: {now.strftime('%H:%M:%S')}")
+                    print("🔍 Monitoring market during 9:00-9:15 session...")
+                    
+                    # Just monitor pre-market, don't select stocks yet
+                    self.monitor_premarket()
+                    return True
+                    
+            elif current_time >= market_open:
+                if now.weekday() < 5:  # Weekday
+                    print(f"\n🔔 MARKET OPENED AT: {now.strftime('%H:%M:%S.%f')}!")
+                    print("⏳ CRITICAL: Waiting for ACTUAL price movement at 9:15:01...")
+                    
+                    # Wait until 9:15:01 when real price movement starts
+                    target_scan_time = datetime_time(9, 15, 1, 0)  # 9:15:01
+                    while datetime.now().time() < target_scan_time:
+                        current = datetime.now()
+                        remaining = (datetime.combine(current.date(), target_scan_time) - current).total_seconds()
+                        print(f"\r📊 Price movement starts in {remaining:.1f}s...", end="")
+                        time.sleep(0.1)
+                    
+                    print(f"\n⚡ PRICE MOVEMENT STARTED! SCANNING NOW AT: {datetime.now().strftime('%H:%M:%S.%f')}!")
                     return True
                 else:
                     print("❌ Weekend - markets closed")
@@ -199,52 +217,120 @@ class TopLoserTradeMonitor:
                     print(f"\r⚡ HIGH PRECISION MODE: {wait_seconds*1000:.0f}ms", end="")
                     time.sleep(0.001)  # Check every 1ms for microsecond precision
     
+    def monitor_premarket(self):
+        """Monitor pre-market during 9:00-9:15 for analysis"""
+        market_open = datetime_time(9, 15, 0, 0)
+        scan_count = 0
+        
+        print(f"🔄 Monitoring pre-market session...")
+        print(f"📉 Just observing market movements, will scan at 9:15 for actual selection")
+        
+        while datetime.now().time() < market_open:
+            scan_count += 1
+            current_time = datetime.now().strftime('%H:%M:%S')
+            
+            try:
+                # Get pre-market indicative prices for monitoring only
+                quotes = self.kite.quote(self.watchlist[:5])  # Monitor just 5 stocks as example
+                
+                print(f"[{current_time}] Pre-market scan #{scan_count} - Market monitoring...")
+                
+                time.sleep(30)  # Monitor every 30 seconds, less frequent
+                
+            except Exception as e:
+                print(f"[{current_time}] ⚠️ Pre-market monitoring failed: {e}")
+                time.sleep(10)
+        
+        print(f"\n📊 Pre-market monitoring complete after {scan_count} scans")
+        print("⏰ Market opening in 1 second, ready to scan for real top losers...")
+    
     def scan_top_losers(self):
-        """Scan for TOP LOSERS using LIVE PRICES at 9:15:01"""
+        """Scan for TOP LOSERS using LIVE PRICES after movement starts"""
         print(f"\n⚡ LIVE PRICE SCAN at {datetime.now().strftime('%H:%M:%S.%f')}")
-        print("Finding TOP LOSER by gap-down, trading with LIVE PRICE at 9:15:01")
+        print("🎯 Capturing REAL-TIME prices AFTER market movement started")
+        print("📉 Using CURRENT market prices - not yesterday's close!")
+        
+        # Additional small delay to ensure prices have moved from opening
+        print("⏳ Ensuring prices have updated from opening...")
+        time.sleep(0.5)  # Wait 500ms more to ensure price movement capture
         
         try:
             quotes = self.kite.quote(self.watchlist)
+            print(f"✅ Successfully fetched live quotes at {datetime.now().strftime('%H:%M:%S.%f')}")
         except Exception as e:
             print(f"❌ Failed to fetch quotes: {e}")
             return None
         
         losers = []
+        
         for symbol in self.watchlist:
             if symbol in quotes:
                 data = quotes[symbol]
-                # Get LIVE price at 9:15:01 - THIS is what we trade at
+                
+                # Get OHLC data
+                if 'ohlc' not in data:
+                    continue
+                    
+                ohlc = data['ohlc']
+                prev_close = ohlc.get('close', 0)
+                open_price = ohlc.get('open', 0)
+                
+                # Get CURRENT LIVE price - prefer LTP if it's different from close
                 ltp = data.get('last_price', 0)
-                open_price = data['ohlc'].get('open', ltp) if 'ohlc' in data else ltp
-                prev_close = data['ohlc'].get('close', 0) if 'ohlc' in data else 0
+                
+                # CRITICAL FIX: At 9:15:01, if last_price equals yesterday's close,
+                # it means LTP hasn't updated yet, so use opening price instead
+                if ltp == prev_close and open_price > 0:
+                    # LTP hasn't updated from yesterday, use today's opening price
+                    ltp = open_price
+                    print(f"  {symbol.split(':')[1]}: Using open price ₹{open_price:.2f} (LTP not updated)")
+                
+                # Also check if LTP is 0 and use open price
+                if ltp == 0 and open_price > 0:
+                    ltp = open_price
+                
                 volume = data.get('volume', 0)
                 
                 if ltp > 0 and prev_close > 0:
-                    # Calculate gap-down percentage for RANKING ONLY
-                    gap_down_pct = ((open_price - prev_close) / prev_close) * 100
+                    # Calculate CURRENT loss percentage (current price vs yesterday's close)
+                    current_loss_pct = ((ltp - prev_close) / prev_close) * 100
                     
-                    # We want stocks that gapped down at open
-                    if gap_down_pct < 0:  # Negative gap-down
+                    # We want stocks that are currently DOWN from yesterday
+                    if current_loss_pct < 0:  # Currently losing
                         losers.append({
                             'symbol': symbol.split(':')[1],
-                            'ltp': ltp,  # LIVE PRICE at 9:15:01 - for trading
-                            'open': open_price,  # Opening price
-                            'prev_close': prev_close,  # Yesterday's close - for reference only
-                            'gap_down': gap_down_pct,  # Gap-down % - for ranking
-                            'volume': volume
+                            'ltp': ltp,  # CURRENT MARKET PRICE - for trading
+                            'prev_close': prev_close,  # Yesterday's close - for reference
+                            'current_loss': current_loss_pct,  # CURRENT loss % - for ranking
+                            'volume': volume,
+                            'open': open_price  # Today's opening price
                         })
         
         if losers:
-            losers.sort(key=lambda x: x['gap_down'])  # Sort by most negative gap-down first
+            losers.sort(key=lambda x: x['current_loss'])  # Sort by most negative current loss first
             
-            print("\n📉 TOP LOSERS BY GAP-DOWN (Trading at LIVE PRICE):")
-            print("-"*85)
-            print(f"{'Rank':<5} {'Stock':<12} {'Live@9:15:01':<15} {'Open':<12} {'PrevClose':<12} {'Gap-Down%':<10}")
-            print("-"*85)
+            print("\n📉 CURRENT TOP LOSERS (Real-time vs Yesterday's Close):")
+            print("-"*75)
+            print(f"{'Rank':<5} {'Stock':<12} {'Current Price':<15} {'Prev Close':<12} {'Loss%':<10}")
+            print("-"*75)
             for i, l in enumerate(losers[:5], 1):
-                print(f"{i:<5} {l['symbol']:<12} ₹{l['ltp']:<13.2f} ₹{l['open']:<10.2f} ₹{l['prev_close']:<10.2f} {l['gap_down']:8.2f}%")
-            print("-"*85)
+                # Show if we're using opening price
+                price_note = f"₹{l['ltp']:.2f}"
+                if l['ltp'] == l.get('open', 0):
+                    price_note += " (Open)"
+                print(f"{i:<5} {l['symbol']:<12} {price_note:<15} ₹{l['prev_close']:<10.2f} {l['current_loss']:8.2f}%")
+            print("-"*75)
+            
+            # Show selected stock details
+            selected = losers[0]
+            print(f"\n✅ Selected CURRENT TOP LOSER: {selected['symbol']}")
+            print(f"   Current Loss: {selected['current_loss']:.2f}% (biggest current loss)")
+            if selected['ltp'] == selected.get('open', 0):
+                print(f"   TRADING AT OPENING PRICE: ₹{selected['ltp']:.2f}")
+                print(f"   (Using open price as LTP hasn't updated yet)")
+            else:
+                print(f"   TRADING AT CURRENT PRICE: ₹{selected['ltp']:.2f}")
+            print(f"   This is the REAL-TIME worst performer vs yesterday!")
             
             return losers[0] if losers else None
         
@@ -418,7 +504,7 @@ class TopLoserTradeMonitor:
                 'is_live': hasattr(self, 'is_live') and self.is_live
             }
             
-            print(f"   Stock: {stock['symbol']} @ ₹{stock['ltp']:.2f} (Gap-down: {stock['gap_down']:.2f}%)")
+            print(f"   Stock: {stock['symbol']} @ ₹{stock['ltp']:.2f} (Current Loss: {stock['current_loss']:.2f}%)")
             print(f"   PUT Option: {option['tradingsymbol']}")
             print(f"   Entry: ₹{entry_price:.2f} x {quantity}")
             print(f"   Investment: ₹{entry_price * quantity:,.2f}")
@@ -629,8 +715,8 @@ class TopLoserTradeMonitor:
     def run_strategy(self):
         """Main TOP LOSER strategy execution with monitoring"""
         
-        # Wait for market open
-        if not self.wait_for_market_open():
+        # Wait for pre-market and analyze, then execute at market open
+        if not self.wait_for_premarket_and_execute():
             return
         
         # Scan for top loser
@@ -641,15 +727,16 @@ class TopLoserTradeMonitor:
             return
         
         # Check minimum loss threshold
-        MIN_LOSS = -0.3  # Minimum 0.3% gap-down required (negative value)
-        if top_loser['gap_down'] > MIN_LOSS:
-            print(f"\n⚠️ Top loser gap-down only {top_loser['gap_down']:.2f}%")
-            print(f"Minimum {abs(MIN_LOSS)}% gap-down required")
+        MIN_LOSS = -0.3  # Minimum 0.3% current loss required (negative value)
+        if top_loser['current_loss'] > MIN_LOSS:
+            print(f"\n⚠️ Top loser current loss only {top_loser['current_loss']:.2f}%")
+            print(f"Minimum {abs(MIN_LOSS)}% current loss required")
             return
         
-        print(f"\n🎯 SELECTED TOP LOSER: {top_loser['symbol']}")
-        print(f"   Gap-down: {top_loser['gap_down']:.2f}% (biggest gap-down)")
-        print(f"   TRADING AT LIVE PRICE: ₹{top_loser['ltp']:.2f} (at 9:15:01)")
+        print(f"\n🎯 SELECTED CURRENT TOP LOSER: {top_loser['symbol']}")
+        print(f"   Current Loss: {top_loser['current_loss']:.2f}% (biggest current loss)")
+        print(f"   TRADING AT CURRENT PRICE: ₹{top_loser['ltp']:.2f}")
+        print(f"   This is the REAL-TIME worst performer vs yesterday!")
         
         # Find PUT option contract
         option = self.find_option_contract(top_loser['symbol'], top_loser['ltp'], 'PE')
