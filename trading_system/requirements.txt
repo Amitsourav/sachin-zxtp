@@ -1,0 +1,33 @@
+# Core dependencies
+requests==2.31.0
+pandas==2.0.3
+numpy==1.24.3
+yfinance==0.2.18
+nsetools==1.0.11
+
+# Scheduling and timing
+APScheduler==3.10.4
+pytz==2023.3
+
+# API clients
+kiteconnect==4.1.0
+upstox-python-sdk==1.7.0
+
+# Notifications
+python-telegram-bot==20.4
+smtplib
+
+# Configuration
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Logging and monitoring
+colorlog==6.7.0
+
+# Testing
+pytest==7.4.0
+pytest-mock==3.11.1
+
+# Data analysis for backtesting
+matplotlib==3.7.2
+plotly==5.15.0
